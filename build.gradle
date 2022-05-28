@@ -1,0 +1,18 @@
+plugins {
+    id 'java'
+}
+
+group 'org.adde0109'
+version '1.0-SNAPSHOT'
+
+repositories {
+    maven {
+        name 'papermc'
+        url 'https://repo.papermc.io/repository/maven-public/'
+    }
+}
+
+dependencies {
+    implementation 'com.velocitypowered:velocity-api:3.1.2-SNAPSHOT'
+    annotationProcessor 'com.velocitypowered:velocity-api:3.1.2-SNAPSHOT'
+}
