@@ -60,7 +60,7 @@ public class main {
   public void onPreLoginEvent(PreLoginEvent event, Continuation continuation) {
     inbound = (LoginPhaseConnection) event.getConnection();
 
-    recivedParts = new byte[1000000000];
+    recivedParts = new byte[2000000];
     recivedBytes = 0;
     numberOfRecivedParts = 0;
     ping(continuation);
@@ -74,6 +74,10 @@ public class main {
 
   public void onBackendPong(ServerPing status, Continuation continuation) {
     numberOfRecivedParts++;
+      if((!status.getModinfo().isPresent()) || (!Objects.equals(status.getModinfo().get().getType(), "ambassador"))) {
+        continuation.resumeWithException(new Error("The specified Forge server is not running the Forge-side version of this plugin!"));
+    }
+
 
     ModInfo.Mod pair = status.getModinfo().orElseThrow(IllegalAccessError::new).getMods().get(0);
 
@@ -82,7 +86,7 @@ public class main {
     int parts = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[1]);
     int recivedPartNr = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[0]);
 
-    logger.info("Downloading part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(parts));
+    logger.info("Downloaded part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(parts));
 
 
     byte[] temp = pair.getId().getBytes(StandardCharsets.ISO_8859_1);
@@ -139,6 +143,9 @@ public class main {
 
   @Subscribe
   public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
+    if((recivedClientModlist == null) || (recivedClientACK == null)) {
+      continuation.resume();
+    }
     ByteArrayDataInput data = event.contentsAsDataStream();
     if(data.skipBytes(PACKET_LENGTH_INDEX) != PACKET_LENGTH_INDEX)  //Channel Identifier
       continuation.resumeWithException(new EOFException());
