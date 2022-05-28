@@ -82,7 +82,7 @@ public class main {
     int parts = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[1]);
     int recivedPartNr = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[0]);
 
-    logger.warn("recived part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(parts));
+    logger.info("Downloading part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(parts));
 
 
     byte[] temp = pair.getId().getBytes(StandardCharsets.ISO_8859_1);
@@ -94,7 +94,6 @@ public class main {
     }
 
 
-    logger.warn("test");
     if(numberOfRecivedParts >= parts)
     {
       sendHandshake(splitPacket(recivedParts,values));
@@ -102,7 +101,6 @@ public class main {
     }
     else {
       ping(continuation);
-      logger.warn("Pinged!");
     }
   }
   private List<byte[]> splitPacket(byte[] data, int[] startPacketMarkers) {
@@ -129,11 +127,9 @@ public class main {
         @Override
         public void onMessageResponse(byte @Nullable [] responseBody) {
           if (responseBody.length < PACKET_LENGTH_INDEX+5+5) {
-            logger.warn("ACK recived!");
             recivedClientACK = responseBody;
           }
           else {
-            logger.warn("Modlist recived!");
             recivedClientModlist = responseBody;
           }
         }
