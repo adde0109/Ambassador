@@ -7,7 +7,9 @@ import com.velocitypowered.api.event.EventTask;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
+import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
@@ -20,7 +22,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 
+import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -29,7 +35,8 @@ public class main {
 
   private final ProxyServer server;
   private final Logger logger;
-  private final RegisteredServer forgeServer;
+  private final Path dataDirectory;
+  private RegisteredServer forgeServer;
 
   private LoginPhaseConnection inbound;
   private ChannelIdentifier loginWrapperChannel;
@@ -38,12 +45,27 @@ public class main {
   private static final int PACKET_LENGTH_INDEX = 14;
 
   @Inject
-  public main(ProxyServer server, Logger logger) {
+  public main(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
     this.server = server;
     this.logger = logger;
-    forgeServer = server.getServer("lobby").orElseThrow(IllegalAccessError::new);
+    this.dataDirectory = dataDirectory;
+  }
 
+  @Subscribe
+  public void onProxyInitialization(ProxyInitializeEvent event) {
+    Path serverFilePath = dataDirectory.resolve("forgeServer.txt");
+    /*try {
+      Files.createDirectory(dataDirectory);
+      serverFilePath.toFile().createNewFile()
+    }
+    catch (IOException e) {
+    }
+
+   */
+
+    forgeServer = server.getServer("lobby").orElseThrow(IllegalAccessError::new);
     loginWrapperChannel = MinecraftChannelIdentifier.create("fml","loginwrapper");
+
   }
 
   private int numberOfRecivedParts;
@@ -58,6 +80,9 @@ public class main {
 
   @Subscribe
   public void onPreLoginEvent(PreLoginEvent event, Continuation continuation) {
+    if (forgeServer == null) {
+      continuation.resume();
+    }
     inbound = (LoginPhaseConnection) event.getConnection();
 
     recivedParts = new byte[2000000];
@@ -76,6 +101,7 @@ public class main {
     numberOfRecivedParts++;
       if((!status.getModinfo().isPresent()) || (!Objects.equals(status.getModinfo().get().getType(), "ambassador"))) {
         continuation.resumeWithException(new Error("The specified Forge server is not running the Forge-side version of this plugin!"));
+        return;
     }
 
 
@@ -143,12 +169,15 @@ public class main {
 
   @Subscribe
   public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
-    if((recivedClientModlist == null) || (recivedClientACK == null)) {
+    if((recivedClientModlist == null) || (recivedClientACK == null) || (!Objects.equals(event.getIdentifier().getId(), "fml:loginwrapper"))) {
       continuation.resume();
+      return;
     }
     ByteArrayDataInput data = event.contentsAsDataStream();
-    if(data.skipBytes(PACKET_LENGTH_INDEX) != PACKET_LENGTH_INDEX)  //Channel Identifier
+    if(data.skipBytes(PACKET_LENGTH_INDEX) != PACKET_LENGTH_INDEX) {  //Channel Identifier
       continuation.resumeWithException(new EOFException());
+      return;
+    }
     readVarInt(data); //Length
     int packetID = readVarInt(data);
 
