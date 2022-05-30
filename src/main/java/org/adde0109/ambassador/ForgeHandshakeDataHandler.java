@@ -1,12 +1,17 @@
 package org.adde0109.ambassador;
 
+import com.google.common.io.ByteArrayDataInput;
 import com.velocitypowered.api.event.Continuation;
+import com.velocitypowered.api.event.PostOrder;
+import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
+import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.util.ModInfo;
+import java.io.EOFException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
@@ -33,16 +38,40 @@ public class ForgeHandshakeDataHandler {
     this.logger = logger;
   }
 
-
+  @Subscribe(order = PostOrder.EARLY)
   public void onPreLogin(PreLoginEvent event, Continuation continuation) {
     if (cachedServerHandshake == null) {
       handshakeReceiver receiver = new handshakeReceiver(handshakeServer, logger);
-      receiver.getHandshake().thenAccept((p) -> {
+      receiver.downloadHandshake().thenAccept((p) -> {
         sendModlist(p.modListPacket,(LoginPhaseConnection) event.getConnection());
         sendOther(p.otherPackets,(LoginPhaseConnection) event.getConnection());
         continuation.resume();
       });
     }
+  }
+
+  @Subscribe
+  public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
+    if((recivedClientModlist == null) || (recivedClientACK == null) || (!Objects.equals(event.getIdentifier().getId(), "fml:loginwrapper"))) {
+      continuation.resume();
+      return;
+    }
+    ByteArrayDataInput data = event.contentsAsDataStream();
+    if(data.skipBytes(PACKET_LENGTH_INDEX) != PACKET_LENGTH_INDEX) {  //Channel Identifier
+      continuation.resumeWithException(new EOFException());
+      return;
+    }
+    readVarInt(data); //Length
+    int packetID = readVarInt(data);
+
+    if(packetID == 1) {
+      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(recivedClientModlist));
+    }
+    else {
+      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(recivedClientACK));
+    }
+    continuation.resume();
+
   }
 
 
@@ -57,7 +86,21 @@ public class ForgeHandshakeDataHandler {
     });
   }
 
+  public static int readVarInt(ByteArrayDataInput stream) {
+    int i = 0;
+    int j = 0;
 
+    byte b0;
+    do {
+      b0 = stream.readByte();
+      i |= (b0 & 127) << j++ * 7;
+      if (j > 5) {
+        throw new RuntimeException("VarInt too big");
+      }
+    } while((b0 & 128) == 128);
+
+    return i;
+  }
 
   private class handshakeReceiver {
 
@@ -78,7 +121,7 @@ public class ForgeHandshakeDataHandler {
 
     }
 
-    public CompletableFuture<CachedServerHandshake> getHandshake() {
+    public CompletableFuture<CachedServerHandshake> downloadHandshake() {
       CompletableFuture<CachedServerHandshake> future = new CompletableFuture<CachedServerHandshake>();
       ping(future);
       return future;

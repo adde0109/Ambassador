@@ -32,12 +32,6 @@ public class Ambassador {
   private final Path dataDirectory;
   private RegisteredServer forgeServer;
 
-  private LoginPhaseConnection inbound;
-  private ChannelIdentifier loginWrapperChannel;
-
-  private static final int MAX_DATA_LENGTH = 16000;
-  private static final int PACKET_LENGTH_INDEX = 14;
-
   private static ForgeHandshakeDataHandler forgeHandshakeDataHandler;
 
   @Inject
@@ -60,154 +54,9 @@ public class Ambassador {
    */
 
     forgeServer = server.getServer("lobby").orElseThrow(IllegalAccessError::new);
-    loginWrapperChannel = MinecraftChannelIdentifier.create("fml","loginwrapper");
 
     forgeHandshakeDataHandler = new ForgeHandshakeDataHandler(forgeServer,logger);
+    server.getEventManager().register(this, forgeHandshakeDataHandler);
   }
-
-  private int numberOfRecivedParts;
-  private byte[] recivedParts;
-  private int recivedBytes;
-  private int head;
-
-  private byte[] recivedClientModlist;
-  private byte[] recivedClientACK;
-
-
-
-  @Subscribe
-  public void onPreLoginEvent(PreLoginEvent event, Continuation continuation) {
-    if (forgeServer == null) {
-      continuation.resume();
-    }
-    inbound = (LoginPhaseConnection) event.getConnection();
-
-    /*recivedParts = new byte[2000000];
-    recivedBytes = 0;
-    numberOfRecivedParts = 0;
-    ping(continuation);
-    */
-    forgeHandshakeDataHandler.onPreLogin(event,continuation);
-  }
-
-  private void ping(Continuation continuation) {
-    forgeServer.ping().thenAccept((s) -> onBackendPong(s,continuation));
-  }
-
-
-  public void onBackendPong(ServerPing status, Continuation continuation) {
-    numberOfRecivedParts++;
-      if((!status.getModinfo().isPresent()) || (!Objects.equals(status.getModinfo().get().getType(), "ambassador"))) {
-        continuation.resumeWithException(new Error("The specified Forge server is not running the Forge-side version of this plugin!"));
-        return;
-    }
-
-
-    ModInfo.Mod pair = status.getModinfo().orElseThrow(IllegalAccessError::new).getMods().get(0);
-
-    int[] values = Arrays.stream(pair.getVersion().substring(pair.getVersion().indexOf(":")+1).split(":")).map(Integer::parseInt).mapToInt(x -> x).toArray();
-
-    int parts = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[1]);
-    int recivedPartNr = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[0]);
-
-    logger.info("Downloaded part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(parts));
-
-    placePartInArray(pair.getId().getBytes(StandardCharsets.ISO_8859_1),recivedPartNr-1);
-
-    if(numberOfRecivedParts >= parts)
-    {
-      sendHandshake(splitPackets(recivedParts,values));
-      continuation.resume();
-    }
-    else {
-      ping(continuation);
-    }
-  }
-
-  private void placePartInArray(byte[] temp, int partNr) {
-    head = partNr*MAX_DATA_LENGTH;
-    for(int i = 0;i<temp.length;i++) {
-      recivedParts[head] = temp[i];
-      head++;
-      recivedBytes++;
-    }
-  }
-
-
-  private List<byte[]> splitPackets(byte[] data, int[] startPacketMarkers) {
-    List<byte[]> list = new ArrayList<>();
-    for(int i = 0;i<startPacketMarkers.length-1;i++) {
-      list.add(getPacket(data, startPacketMarkers[i],startPacketMarkers[i+1]-1));
-    }
-    list.add(getPacket(data,startPacketMarkers[startPacketMarkers.length-1],recivedBytes-1));
-    return list;
-  }
-
-  private byte[] getPacket(byte[] data, int startByteIndex,int lastByteIndex) {
-    byte[] temp = new byte[lastByteIndex-startByteIndex+1];
-
-    for(int i = startByteIndex; i<=lastByteIndex;i++) {
-      temp[i-startByteIndex] = data[i];
-    }
-    return temp;
-  }
-
-  private void sendHandshake(List<byte[]> handshakePackets) {
-    handshakePackets.forEach((packet) -> {
-      inbound.sendLoginPluginMessage(loginWrapperChannel, packet, new LoginPhaseConnection.MessageConsumer() {
-        @Override
-        public void onMessageResponse(byte @Nullable [] responseBody) {
-          if (responseBody.length < PACKET_LENGTH_INDEX+5+5) {
-            recivedClientACK = responseBody;
-          }
-          else {
-            recivedClientModlist = responseBody;
-          }
-        }
-      });
-    });
-  }
-
-  @Subscribe
-  public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
-    if((recivedClientModlist == null) || (recivedClientACK == null) || (!Objects.equals(event.getIdentifier().getId(), "fml:loginwrapper"))) {
-      continuation.resume();
-      return;
-    }
-    ByteArrayDataInput data = event.contentsAsDataStream();
-    if(data.skipBytes(PACKET_LENGTH_INDEX) != PACKET_LENGTH_INDEX) {  //Channel Identifier
-      continuation.resumeWithException(new EOFException());
-      return;
-    }
-    readVarInt(data); //Length
-    int packetID = readVarInt(data);
-
-    if(packetID == 1) {
-      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(forgeHandshakeDataHandler.recivedClientModlist));
-    }
-    else {
-      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(forgeHandshakeDataHandler.recivedClientACK));
-    }
-    continuation.resume();
-
-  }
-
-
-  public static int readVarInt(ByteArrayDataInput stream) {
-    int i = 0;
-    int j = 0;
-
-    byte b0;
-    do {
-      b0 = stream.readByte();
-      i |= (b0 & 127) << j++ * 7;
-      if (j > 5) {
-        throw new RuntimeException("VarInt too big");
-      }
-    } while((b0 & 128) == 128);
-
-    return i;
-  }
-
 
 }
