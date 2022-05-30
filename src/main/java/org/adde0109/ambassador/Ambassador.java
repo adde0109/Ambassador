@@ -3,7 +3,6 @@ package org.adde0109.ambassador;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Continuation;
-import com.velocitypowered.api.event.EventTask;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
@@ -19,19 +18,14 @@ import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.util.ModInfo;
 import java.io.EOFException;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Stream;
 
 @Plugin(id = "ambassador", name = "Ambassador", version = "0.1.0-SNAPSHOT", url = "", description = "", authors = {"adde0109"})
-public class main {
+public class Ambassador {
 
   private final ProxyServer server;
   private final Logger logger;
@@ -45,7 +39,7 @@ public class main {
   private static final int PACKET_LENGTH_INDEX = 14;
 
   @Inject
-  public main(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
+  public Ambassador(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
     this.server = server;
     this.logger = logger;
     this.dataDirectory = dataDirectory;
