@@ -38,6 +38,8 @@ public class Ambassador {
   private static final int MAX_DATA_LENGTH = 16000;
   private static final int PACKET_LENGTH_INDEX = 14;
 
+  private static ForgeHandshakeDataHandler forgeHandshakeDataHandler;
+
   @Inject
   public Ambassador(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
     this.server = server;
@@ -60,6 +62,7 @@ public class Ambassador {
     forgeServer = server.getServer("lobby").orElseThrow(IllegalAccessError::new);
     loginWrapperChannel = MinecraftChannelIdentifier.create("fml","loginwrapper");
 
+    forgeHandshakeDataHandler = new ForgeHandshakeDataHandler(forgeServer,logger);
   }
 
   private int numberOfRecivedParts;
@@ -79,11 +82,12 @@ public class Ambassador {
     }
     inbound = (LoginPhaseConnection) event.getConnection();
 
-    recivedParts = new byte[2000000];
+    /*recivedParts = new byte[2000000];
     recivedBytes = 0;
     numberOfRecivedParts = 0;
     ping(continuation);
-
+    */
+    forgeHandshakeDataHandler.onPreLogin(event,continuation);
   }
 
   private void ping(Continuation continuation) {
@@ -108,26 +112,29 @@ public class Ambassador {
 
     logger.info("Downloaded part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(parts));
 
-
-    byte[] temp = pair.getId().getBytes(StandardCharsets.ISO_8859_1);
-    head = (recivedPartNr-1)*MAX_DATA_LENGTH;
-    for(int i = 0;i<temp.length;i++) {
-      recivedParts[head] = temp[i];
-      head++;
-      recivedBytes++;
-    }
-
+    placePartInArray(pair.getId().getBytes(StandardCharsets.ISO_8859_1),recivedPartNr-1);
 
     if(numberOfRecivedParts >= parts)
     {
-      sendHandshake(splitPacket(recivedParts,values));
+      sendHandshake(splitPackets(recivedParts,values));
       continuation.resume();
     }
     else {
       ping(continuation);
     }
   }
-  private List<byte[]> splitPacket(byte[] data, int[] startPacketMarkers) {
+
+  private void placePartInArray(byte[] temp, int partNr) {
+    head = partNr*MAX_DATA_LENGTH;
+    for(int i = 0;i<temp.length;i++) {
+      recivedParts[head] = temp[i];
+      head++;
+      recivedBytes++;
+    }
+  }
+
+
+  private List<byte[]> splitPackets(byte[] data, int[] startPacketMarkers) {
     List<byte[]> list = new ArrayList<>();
     for(int i = 0;i<startPacketMarkers.length-1;i++) {
       list.add(getPacket(data, startPacketMarkers[i],startPacketMarkers[i+1]-1));
@@ -176,10 +183,10 @@ public class Ambassador {
     int packetID = readVarInt(data);
 
     if(packetID == 1) {
-      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(recivedClientModlist));
+      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(forgeHandshakeDataHandler.recivedClientModlist));
     }
     else {
-      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(recivedClientACK));
+      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(forgeHandshakeDataHandler.recivedClientACK));
     }
     continuation.resume();
 
