@@ -5,7 +5,7 @@
       <profile name="Gradle Imported" enabled="true">
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
-          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.velocitypowered/velocity-api/3.1.2-SNAPSHOT/5b05f9d06210af389f1bc92fc177ce0c72ab2fd7/velocity-api-3.1.2-SNAPSHOT.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.velocitypowered/velocity-api/3.1.2-SNAPSHOT/88f0b9c39c98439596b8f7f419a817a0371ffb2b/velocity-api-3.1.2-SNAPSHOT.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.moandjiezana.toml/toml4j/0.7.2/a03337911d0bd2c40932aca3946edb30d0e7d0c/toml4j-0.7.2.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.spongepowered/configurate-gson/3.7.2/431733e80d7dfc62b37962c2723bba5c996548f/configurate-gson-3.7.2.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.kyori/adventure-text-minimessage/4.10.1/c433cd701761c75ca06b7f36eb2623068203dd61/adventure-text-minimessage-4.10.1.jar" />
