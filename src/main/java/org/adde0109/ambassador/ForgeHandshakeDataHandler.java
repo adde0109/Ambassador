@@ -28,7 +28,7 @@ public class ForgeHandshakeDataHandler {
   public byte[] recivedClientACK;
   public byte[] recivedClientModlist;
 
-  private static final int PACKET_LENGTH_INDEX = 14;
+  private static final int PACKET_LENGTH_INDEX = 14;    //length of "fml:handshake"+1
 
   private final Logger logger;
   private RegisteredServer handshakeServer;
@@ -40,13 +40,19 @@ public class ForgeHandshakeDataHandler {
 
   @Subscribe(order = PostOrder.EARLY)
   public void onPreLogin(PreLoginEvent event, Continuation continuation) {
-    if (cachedServerHandshake == null) {
+    if(handshakeServer.getPlayersConnected().isEmpty()) {
       handshakeReceiver receiver = new handshakeReceiver(handshakeServer, logger);
       receiver.downloadHandshake().thenAccept((p) -> {
+        cachedServerHandshake = p;
         sendModlist(p.modListPacket,(LoginPhaseConnection) event.getConnection());
         sendOther(p.otherPackets,(LoginPhaseConnection) event.getConnection());
         continuation.resume();
       });
+    }
+    else if(cachedServerHandshake != null) {
+      sendModlist(cachedServerHandshake.modListPacket, (LoginPhaseConnection) event.getConnection());
+      sendOther(cachedServerHandshake.otherPackets,(LoginPhaseConnection) event.getConnection());
+      continuation.resume();
     }
   }
 
