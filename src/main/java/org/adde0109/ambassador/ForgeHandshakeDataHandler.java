@@ -104,7 +104,7 @@ public class ForgeHandshakeDataHandler {
 
   private class handshakeReceiver {
 
-    private static final int MAX_DATA_LENGTH = 16000;
+    private int partLength;
 
     private final Logger logger;
 
@@ -114,7 +114,6 @@ public class ForgeHandshakeDataHandler {
     private final RegisteredServer forgeServer;
 
     private handshakeReceiver(RegisteredServer server, Logger logger) {
-      recivedParts = new byte[2000000];
 
       this.logger = logger;
       this.forgeServer = server;
@@ -144,10 +143,16 @@ public class ForgeHandshakeDataHandler {
 
       int[] values = Arrays.stream(pair.getVersion().substring(pair.getVersion().indexOf(":") + 1).split(":")).map(Integer::parseInt).mapToInt(x -> x).toArray();
 
+      int totalLength = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[2]);
       int parts = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[1]);
       int recivedPartNr = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[0]);
 
       logger.info("Downloaded part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(parts));
+
+      if(recivedParts == null) {
+        recivedParts = new byte[totalLength];
+        partLength = pair.getId().getBytes(StandardCharsets.ISO_8859_1).length;
+      }
 
       placePartInArray(pair.getId().getBytes(StandardCharsets.ISO_8859_1), recivedPartNr - 1);
 
@@ -162,7 +167,7 @@ public class ForgeHandshakeDataHandler {
 
 
     private void placePartInArray(byte[] temp, int partNr) {
-      int head = partNr * MAX_DATA_LENGTH;
+      int head = partNr * partLength;
       for (int i = 0; i < temp.length; i++) {
         recivedParts[head] = temp[i];
         head++;
