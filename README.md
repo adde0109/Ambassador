@@ -4,7 +4,7 @@ This is a Velocity plugin that makes it possible to host a modern forge server b
 
 Unlike other solutions, this plugin does not require any special modifications to the client. (The player doesn't need to do anything)
 
-This plugin is right now in it's alpha stage and should not be used on an actual server, use it at your own risk, you have been warned.
+This plugin is right now in it's alpha stage and should not be used in production, use it at your own risk, you have been warned.
 ## How to get started:
 ### On the Velocity proxy side:
 1. Download and install this plugin to your proxy.
@@ -22,7 +22,6 @@ This plugin is right now in it's alpha stage and should not be used on an actual
 ## Limitations
 * You can't switch servers when connecting with a forge client, yet...
 * This plugin can't yet distinguish between forge and vanilla clients, so you either one must use forced hosts or other means.
-* 
 
 ## Planned features
 * Ping Forwarding
