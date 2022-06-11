@@ -1,7 +1,11 @@
 package org.adde0109.ambassador;
 
+import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.ConfigSpec;
+import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.electronwill.nightconfig.core.io.ParsingException;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
@@ -10,6 +14,7 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 
+import ninja.leaping.configurate.commented.SimpleCommentedConfigurationNode;
 import org.slf4j.Logger;
 import com.electronwill.nightconfig.core.file.FileConfig;
 
@@ -26,7 +31,6 @@ public class Ambassador {
   private final Logger logger;
   private final Path dataDirectory;
   private Optional<RegisteredServer> forgeServer;
-  private FileConfig config;
 
   private static ForgeHandshakeDataHandler forgeHandshakeDataHandler;
 
@@ -64,8 +68,22 @@ public class Ambassador {
     }
 
     try {
-      config = FileConfig.of(dataDirectory.resolve("forgeServer.toml"));
+      CommentedFileConfig config = CommentedFileConfig.builder(dataDirectory.resolve("forgeServer.toml"))
+              .defaultData(Ambassador.class.getClassLoader().getResource("default-ambassador.toml"))
+              .autosave()
+              .preserveInsertionOrder()
+              .sync()
+              .build();
       config.load();
+
+      CommentedConfig settingsConfig = config.get("Differentiators");
+
+
+      Differentiators settings = new Differentiators(settingsConfig);
+
+      logger.info(settings.differentiators.get("758").handshakeServer);
+
+      config.save();
     }
     catch (ParsingException e) {
       logger.error("Config related error: " + e.toString());
@@ -73,26 +91,49 @@ public class Ambassador {
     }
 
 
-    ConfigSpec spec = new ConfigSpec();
-    spec.define("Forge Server", "");
 
-    spec.correct(config);
+    //758 - 1.18.2
 
-    config.save();
-    if(config.get("Forge Server") != "") {
-      forgeServer = server.getServer(config.get("Forge Server"));
-      if(!forgeServer.isPresent()) {
-        logger.error("Could not find " + config.get("Forge Server") + " in registered servers!");
-        config.close();
-        return false;
-      }
-    }
-    else {
-      logger.error("Please specify the forge server in the config");
-      config.close();
-      return false;
-    }
+    //754 - 1.16.5
+
+    forgeServer = server.getServer("lobby");
     return true;
   }
 
+  private static class Differentiators {
+    private Map<String,DifferentiatorSettings> differentiators = ImmutableMap.of(
+            "758", new DifferentiatorSettings(),
+            "754", new DifferentiatorSettings()
+    );
+    private Differentiators(){
+    }
+
+    private Differentiators(CommentedConfig config) {
+      if (config != null) {
+        Map<String,DifferentiatorSettings> differentiators = new HashMap<>();
+        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+          if (entry.getValue() instanceof CommentedConfig) {
+            differentiators.put(entry.getKey(),new DifferentiatorSettings(entry.getValue()));
+          }
+        }
+        this.differentiators = ImmutableMap.copyOf(differentiators);
+      }
+    }
+  }
+
+  private static class DifferentiatorSettings {
+    private String handshakeServer = "";
+    private boolean forced = false;
+
+    private DifferentiatorSettings(){
+    }
+
+    private DifferentiatorSettings(CommentedConfig config) {
+      if (config != null) {
+        this.handshakeServer = config.getOrElse("forge-server", handshakeServer);
+        this.forced = config.getOrElse("forced",forced);
+      }
+    }
+
+  }
 }

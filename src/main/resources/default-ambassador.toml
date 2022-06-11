@@ -1,0 +1,21 @@
+#Maybe you want to have one 1.16.5 modpack-server and one 1.18.2 modpack-server behind Velocity, in order for Ambassador to tell the
+#diffrence between modpacks on the connecting client, the plugin looks at the client's protocol version.
+
+#You may add more diffrentiators, just make sure they have diffrent protocol versions.
+[Differentiators]
+
+#Protocol version - 1.18.2
+[Differentiators.758]
+#The name of the forge server that forge players should be able to connect to.
+#This server must have Ambassador-forge installed.
+#The name should be the same as specified in the "velocity.toml" config, e.g. "lobby".
+forge-server = "dsfgdg"
+
+#Some modpacks are not compatible with vanilla servers.
+#To make sure they don't get connected to one upon login (like a vanilla lobby), change this to true.
+forced = false
+
+#Protocol version - 1.16.5
+[Differentiators.754]
+forge-server = ""
+forced = false
