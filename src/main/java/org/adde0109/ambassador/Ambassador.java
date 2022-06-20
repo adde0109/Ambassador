@@ -31,6 +31,7 @@ public class Ambassador {
   private final Logger logger;
   private final Path dataDirectory;
   private Optional<RegisteredServer> forgeServer;
+  private AmbassadorConfig config;
 
   private static ForgeHandshakeDataHandler forgeHandshakeDataHandler;
 
@@ -43,97 +44,16 @@ public class Ambassador {
 
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
-    if(readOrCreateConfig()) {
-      forgeHandshakeDataHandler = new ForgeHandshakeDataHandler(forgeServer.get(),logger);
+    config = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
+    if(config != null) {
+      forgeHandshakeDataHandler = new ForgeHandshakeDataHandler(config,logger);
       server.getEventManager().register(this, forgeHandshakeDataHandler);
     }
     else {
-      logger.info("Ambassador will be disabled because of errors");
+      logger.warn("Ambassador will be disabled because of errors");
     }
 
   }
 
-  private boolean readOrCreateConfig() {
-    try {
-      Files.createDirectories(dataDirectory);
-      Files.createFile(dataDirectory.resolve("forgeServer.toml"));
 
-    }
-    catch (FileAlreadyExistsException ignored) {
-
-    }
-    catch (IOException e) {
-      logger.error("Config related error: " + e.toString());
-      return false;
-    }
-
-    try {
-      CommentedFileConfig config = CommentedFileConfig.builder(dataDirectory.resolve("forgeServer.toml"))
-              .defaultData(Ambassador.class.getClassLoader().getResource("default-ambassador.toml"))
-              .autosave()
-              .preserveInsertionOrder()
-              .sync()
-              .build();
-      config.load();
-
-      CommentedConfig settingsConfig = config.get("Differentiators");
-
-
-      Differentiators settings = new Differentiators(settingsConfig);
-
-      logger.info(settings.differentiators.get("758").handshakeServer);
-
-      config.save();
-    }
-    catch (ParsingException e) {
-      logger.error("Config related error: " + e.toString());
-      return false;
-    }
-
-
-
-    //758 - 1.18.2
-
-    //754 - 1.16.5
-
-    forgeServer = server.getServer("lobby");
-    return true;
-  }
-
-  private static class Differentiators {
-    private Map<String,DifferentiatorSettings> differentiators = ImmutableMap.of(
-            "758", new DifferentiatorSettings(),
-            "754", new DifferentiatorSettings()
-    );
-    private Differentiators(){
-    }
-
-    private Differentiators(CommentedConfig config) {
-      if (config != null) {
-        Map<String,DifferentiatorSettings> differentiators = new HashMap<>();
-        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
-          if (entry.getValue() instanceof CommentedConfig) {
-            differentiators.put(entry.getKey(),new DifferentiatorSettings(entry.getValue()));
-          }
-        }
-        this.differentiators = ImmutableMap.copyOf(differentiators);
-      }
-    }
-  }
-
-  private static class DifferentiatorSettings {
-    private String handshakeServer = "";
-    private boolean forced = false;
-
-    private DifferentiatorSettings(){
-    }
-
-    private DifferentiatorSettings(CommentedConfig config) {
-      if (config != null) {
-        this.handshakeServer = config.getOrElse("forge-server", handshakeServer);
-        this.forced = config.getOrElse("forced",forced);
-      }
-    }
-
-  }
 }

@@ -5,60 +5,59 @@ import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
+import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
+import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.util.ModInfo;
 import java.io.EOFException;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public class ForgeHandshakeDataHandler {
 
-  public handshakeReceiver.CachedServerHandshake cachedServerHandshake;
+  public Map<RegisteredServer, handshakeReceiver.CachedServerHandshake> cachedServerHandshake = new HashMap<RegisteredServer, handshakeReceiver.CachedServerHandshake>();
   public byte[] recivedClientACK;
-  public byte[] recivedClientModlist;
+  public Map<RegisteredServer,byte[]> recivedClientModlist = new HashMap<RegisteredServer,byte[]>();
+  public LoginPhaseConnection connection;
+
+  private Collection<InboundConnection> pendingConnections = new HashSet<InboundConnection>();
 
   private static final int PACKET_LENGTH_INDEX = 14;    //length of "fml:handshake"+1
 
+  private final AmbassadorConfig config;
   private final Logger logger;
-  private RegisteredServer handshakeServer;
 
-  public ForgeHandshakeDataHandler(RegisteredServer handshakeServer,Logger logger) {
-    this.handshakeServer = handshakeServer;
+  public ForgeHandshakeDataHandler(AmbassadorConfig config,Logger logger) {
+    this.config = config;
     this.logger = logger;
   }
 
-  @Subscribe(order = PostOrder.EARLY)
-  public void onPreLogin(PreLoginEvent event, Continuation continuation) {
-    if(handshakeServer.getPlayersConnected().isEmpty()) {
-      handshakeReceiver receiver = new handshakeReceiver(handshakeServer, logger);
-      receiver.downloadHandshake().thenAccept((p) -> {
-        cachedServerHandshake = p;
-        sendModlist(p.modListPacket,(LoginPhaseConnection) event.getConnection());
-        sendOther(p.otherPackets,(LoginPhaseConnection) event.getConnection());
-        continuation.resume();
-      });
-    }
-    else if(cachedServerHandshake != null) {
-      sendModlist(cachedServerHandshake.modListPacket, (LoginPhaseConnection) event.getConnection());
-      sendOther(cachedServerHandshake.otherPackets,(LoginPhaseConnection) event.getConnection());
+  @Subscribe
+  public void onPreLoginEvent(PreLoginEvent event, Continuation continuation) {
+    if (!config.shouldHandle(event.getConnection().getProtocolVersion().getProtocol())) {
       continuation.resume();
+      return;
     }
+    RegisteredServer server = config.getServer(event.getConnection().getProtocolVersion().getProtocol());
+    getHandshake(server).thenAccept(p -> {
+      sendModlist(p.modListPacket,(LoginPhaseConnection) event.getConnection(),server);
+      sendOther(p.otherPackets,(LoginPhaseConnection) event.getConnection());
+      continuation.resume();
+    });
   }
 
   @Subscribe
   public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
-    if((recivedClientModlist == null) || (recivedClientACK == null) || (!Objects.equals(event.getIdentifier().getId(), "fml:loginwrapper"))) {
+    if((!recivedClientModlist.containsKey(event.getConnection().getServer())) || (recivedClientACK == null)) {
       continuation.resume();
       return;
     }
@@ -71,7 +70,7 @@ public class ForgeHandshakeDataHandler {
     int packetID = readVarInt(data);
 
     if(packetID == 1) {
-      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(recivedClientModlist));
+      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(recivedClientModlist.get(event.getConnection().getServer())));
     }
     else {
       event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(recivedClientACK));
@@ -81,15 +80,34 @@ public class ForgeHandshakeDataHandler {
   }
 
 
+  public CompletableFuture<handshakeReceiver.CachedServerHandshake> getHandshake(RegisteredServer handshakeServer) {
+    CompletableFuture<handshakeReceiver.CachedServerHandshake> future;
+    if((handshakeServer.getPlayersConnected().isEmpty()) || (!cachedServerHandshake.containsKey(handshakeServer))) {
+      handshakeReceiver receiver = new handshakeReceiver(handshakeServer, logger);
+      future = receiver.downloadHandshake();
+      future.thenAccept(p -> {
+        cachedServerHandshake.put(handshakeServer,p);
+      });
+      return future;
+    }
+    else {
+      future = new CompletableFuture<>();
+      future.complete(cachedServerHandshake.get(handshakeServer));
+      return future;
+    }
+  }
 
-  private void sendModlist(byte[] modListPacket, LoginPhaseConnection connection) {
-      connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), modListPacket, responseBody -> recivedClientModlist = responseBody);
+  private void sendModlist(byte[] modListPacket, LoginPhaseConnection connection, RegisteredServer server) {
+      connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), modListPacket, responseBody ->  recivedClientModlist.put(server,responseBody));
   }
 
   private void sendOther(List<byte[]> otherPackets, LoginPhaseConnection connection) {
-    otherPackets.forEach((packet) -> {
-      connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), packet, responseBody -> recivedClientACK = responseBody);
-    });
+    for (int i = 0;i<otherPackets.size();i++) {
+      connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), otherPackets.get(i),
+              (i<(otherPackets.size()-1)) ? responseBody -> recivedClientACK = responseBody : responseBody -> {
+        pendingConnections.add(connection);
+              });
+    }
   }
 
   public static int readVarInt(ByteArrayDataInput stream) {
