@@ -1,11 +1,5 @@
 package org.adde0109.ambassador;
 
-import com.electronwill.nightconfig.core.CommentedConfig;
-import com.electronwill.nightconfig.core.ConfigSpec;
-import com.electronwill.nightconfig.core.UnmodifiableConfig;
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
-import com.electronwill.nightconfig.core.io.ParsingException;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
@@ -14,13 +8,8 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 
-import ninja.leaping.configurate.commented.SimpleCommentedConfigurationNode;
 import org.slf4j.Logger;
-import com.electronwill.nightconfig.core.file.FileConfig;
 
-import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 

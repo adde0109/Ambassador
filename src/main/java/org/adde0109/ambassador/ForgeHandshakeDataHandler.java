@@ -2,11 +2,10 @@ package org.adde0109.ambassador;
 
 import com.google.common.io.ByteArrayDataInput;
 import com.velocitypowered.api.event.Continuation;
-import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
-import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
+import com.velocitypowered.api.event.player.ServerPostConnectEvent;
 import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.Player;
@@ -15,8 +14,9 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.util.ModInfo;
 import java.io.EOFException;
+import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
@@ -29,7 +29,8 @@ public class ForgeHandshakeDataHandler {
   public Map<RegisteredServer,byte[]> recivedClientModlist = new HashMap<RegisteredServer,byte[]>();
   public LoginPhaseConnection connection;
 
-  private Collection<InboundConnection> pendingConnections = new HashSet<InboundConnection>();
+
+  private Map<InboundConnection,RegisteredServer> syncedConnections  = new HashMap<InboundConnection,RegisteredServer>();
 
   private static final int PACKET_LENGTH_INDEX = 14;    //length of "fml:handshake"+1
 
@@ -48,11 +49,36 @@ public class ForgeHandshakeDataHandler {
       return;
     }
     RegisteredServer server = config.getServer(event.getConnection().getProtocolVersion().getProtocol());
-    getHandshake(server).thenAccept(p -> {
-      sendModlist(p.modListPacket,(LoginPhaseConnection) event.getConnection(),server);
-      sendOther(p.otherPackets,(LoginPhaseConnection) event.getConnection());
+    getHandshake(server).whenComplete((msg,ex) -> {
+      if (ex != null) {
+        logger.warn("Could not sync player '" + event.getUsername() + "' to server '"
+            + server.getServerInfo().getName() +"' Cause: " + ex.getMessage());
+      } else {
+        sendModlist(msg.modListPacket, (LoginPhaseConnection) event.getConnection(), server);
+        sendOther(msg.otherPackets, (LoginPhaseConnection) event.getConnection(), server);
+      }
       continuation.resume();
     });
+  }
+
+  @Subscribe
+  public void onServerPostConnectEvent(ServerPostConnectEvent event) {
+    RegisteredServer server = getSyncedServer(event.getPlayer()).orElse(null);
+    if(server != null) {
+      event.getPlayer().sendMessage(Component.text("Synced to Server: " + server.getServerInfo().getName()));
+    }
+  }
+
+
+  public Optional<RegisteredServer> getSyncedServer(Player player) {
+    return getSyncedServer(player.getRemoteAddress());
+  }
+
+  private Optional<RegisteredServer> getSyncedServer(InetSocketAddress socketAddress) {
+    syncedConnections.keySet().removeIf(c -> !c.isActive());
+    InboundConnection key = syncedConnections.keySet().stream()
+        .filter((c) -> c.getRemoteAddress()==socketAddress).findFirst().orElse(null);
+      return Optional.ofNullable(syncedConnections.get(key));
   }
 
   @Subscribe
@@ -101,11 +127,12 @@ public class ForgeHandshakeDataHandler {
       connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), modListPacket, responseBody ->  recivedClientModlist.put(server,responseBody));
   }
 
-  private void sendOther(List<byte[]> otherPackets, LoginPhaseConnection connection) {
+  private void sendOther(List<byte[]> otherPackets, LoginPhaseConnection connection, RegisteredServer server) {
     for (int i = 0;i<otherPackets.size();i++) {
       connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), otherPackets.get(i),
               (i<(otherPackets.size()-1)) ? responseBody -> recivedClientACK = responseBody : responseBody -> {
-        pendingConnections.add(connection);
+        syncedConnections.put(connection,server);
+        syncedConnections.keySet().removeIf(c -> !c.isActive());
               });
     }
   }
@@ -151,14 +178,19 @@ public class ForgeHandshakeDataHandler {
     }
 
     private void ping(CompletableFuture<CachedServerHandshake> future) {
-      forgeServer.ping().thenAccept((s) -> onBackendPong(s, future));
+      forgeServer.ping().whenComplete((msg,ex) -> {
+        if (ex != null) {
+          future.completeExceptionally(ex);
+        } else {
+          onBackendPong(msg, future);
+        }
+      });
     }
 
     public void onBackendPong(ServerPing status, CompletableFuture<CachedServerHandshake> future) {
       numberOfRecivedParts++;
       if ((!status.getModinfo().isPresent()) || (!Objects.equals(status.getModinfo().get().getType(), "ambassador"))) {
-        future.cancel(true);
-        logger.error("The specified Forge server is not running the Forge-side version of this plugin!");
+        future.completeExceptionally(new Exception("The specified Forge server is not running the Forge-side version of this plugin!"));
         return;
       }
 
