@@ -9,6 +9,7 @@ import com.velocitypowered.api.event.player.ServerPostConnectEvent;
 import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
@@ -16,6 +17,7 @@ import com.velocitypowered.api.util.ModInfo;
 import java.io.EOFException;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
@@ -36,10 +38,12 @@ public class ForgeHandshakeDataHandler {
 
   private final AmbassadorConfig config;
   private final Logger logger;
+  private final ProxyServer server;
 
-  public ForgeHandshakeDataHandler(AmbassadorConfig config,Logger logger) {
+  public ForgeHandshakeDataHandler(AmbassadorConfig config, Logger logger, ProxyServer server) {
     this.config = config;
     this.logger = logger;
+    this.server = server;
   }
 
   @Subscribe
@@ -49,17 +53,28 @@ public class ForgeHandshakeDataHandler {
       return;
     }
     RegisteredServer server = config.getServer(event.getConnection().getProtocolVersion().getProtocol());
-    getHandshake(server).whenComplete((msg,ex) -> {
-      if (ex != null) {
-        logger.warn("Could not sync player '" + event.getUsername() + "' to server '"
-            + server.getServerInfo().getName() +"' Cause: " + ex.getMessage());
-      } else {
-        sendModlist(msg.modListPacket, (LoginPhaseConnection) event.getConnection(), server);
-        sendOther(msg.otherPackets, (LoginPhaseConnection) event.getConnection(), server);
-      }
-      continuation.resume();
-    });
+
+    this.server.getEventManager().fire(new PreSyncEvent(event.getUsername(),event.getConnection(), server))
+            .thenAccept((e) -> {
+              if (!e.getResult().getServer().isPresent()) {
+                //Do not sync
+                return;
+              }
+                getHandshake(server).whenComplete((msg,ex) -> {
+                  if (ex != null) {
+                    logger.warn("Could not sync player '" + event.getUsername() + "' to server '"
+                        + server.getServerInfo().getName() +"' Cause: " + ex.getMessage());
+                  } else {
+                    AtomicBoolean isForge = new AtomicBoolean(false);
+                    sendModlist(msg.modListPacket, (LoginPhaseConnection) event.getConnection(), server).thenAccept(isForge::set);
+                    sendOther(msg.otherPackets, (LoginPhaseConnection) event.getConnection(), server).thenAccept((ignored) -> {});
+                  }
+                  //Writes the messages
+                  continuation.resume();
+                });
+            });
   }
+
 
   @Subscribe
   public void onServerPostConnectEvent(ServerPostConnectEvent event) {
@@ -123,18 +138,31 @@ public class ForgeHandshakeDataHandler {
     }
   }
 
-  private void sendModlist(byte[] modListPacket, LoginPhaseConnection connection, RegisteredServer server) {
-      connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), modListPacket, responseBody ->  recivedClientModlist.put(server,responseBody));
+  //Should return ForgePlayer instead of Boolean in the future...
+  private CompletableFuture<Boolean> sendModlist(byte[] modListPacket, LoginPhaseConnection connection, RegisteredServer server) {
+    CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
+    connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), modListPacket, responseBody ->  {
+      if (responseBody != null) {
+        recivedClientModlist.put(server,responseBody);
+        future.complete(true);
+      } else {
+        future.complete(false);
+      }
+    });
+    return future;
   }
 
-  private void sendOther(List<byte[]> otherPackets, LoginPhaseConnection connection, RegisteredServer server) {
+  private CompletableFuture<Void> sendOther(List<byte[]> otherPackets, LoginPhaseConnection connection, RegisteredServer server) {
+    CompletableFuture<Void> future = new CompletableFuture<Void>();
     for (int i = 0;i<otherPackets.size();i++) {
       connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), otherPackets.get(i),
               (i<(otherPackets.size()-1)) ? responseBody -> recivedClientACK = responseBody : responseBody -> {
         syncedConnections.put(connection,server);
         syncedConnections.keySet().removeIf(c -> !c.isActive());
+        future.complete(null);
               });
     }
+    return future;
   }
 
   public static int readVarInt(ByteArrayDataInput stream) {

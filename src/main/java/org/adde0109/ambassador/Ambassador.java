@@ -35,7 +35,7 @@ public class Ambassador {
   public void onProxyInitialization(ProxyInitializeEvent event) {
     config = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
     if(config != null) {
-      forgeHandshakeDataHandler = new ForgeHandshakeDataHandler(config,logger);
+      forgeHandshakeDataHandler = new ForgeHandshakeDataHandler(config,logger,server);
       server.getEventManager().register(this, forgeHandshakeDataHandler);
     }
     else {
