@@ -1,10 +1,8 @@
 package org.adde0109.ambassador;
 
 import com.velocitypowered.api.event.Continuation;
-import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -14,7 +12,7 @@ public class ForgeConnection {
 
   private byte[] recivedClientModlist;
 
-  private ForgeHandshakeDataHandler.CachedServerHandshake transmittedHandshake;
+  private ForgeHandshakeUtils.CachedServerHandshake transmittedHandshake;
 
 
   private ForgeConnection(LoginPhaseConnection connection) {

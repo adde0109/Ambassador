@@ -12,10 +12,9 @@ import org.slf4j.Logger;
 public class ForgeServerConnection {
 
   private static final int PACKET_LENGTH_INDEX = 14;    //length of "fml:handshake"+1
-  private final Ambassador ambassador;
   private final Logger logger;
   private final RegisteredServer handshakeServer;
-  private ForgeHandshakeDataHandler.CachedServerHandshake handshake;
+  private ForgeHandshakeUtils.CachedServerHandshake handshake;
   private byte[] defaultClientModlist;
   private byte[] defaultClientACK;
 
@@ -23,17 +22,16 @@ public class ForgeServerConnection {
     return handshakeServer;
   }
 
-  public ForgeServerConnection(Ambassador ambassador, Logger logger, RegisteredServer handshakeServer) {
-    this.ambassador = ambassador;
-    this.logger = logger;
+  public ForgeServerConnection(RegisteredServer handshakeServer, Logger logger) {
     this.handshakeServer = handshakeServer;
+    this.logger = logger;
   }
 
-  public CompletableFuture<ForgeHandshakeDataHandler.CachedServerHandshake> getHandshake() {
-    CompletableFuture<ForgeHandshakeDataHandler.CachedServerHandshake> future;
+  public CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> getHandshake() {
+    CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> future;
     if (handshakeServer.getPlayersConnected().isEmpty() || (handshake == null)) {
-      ForgeHandshakeDataHandler.handshakeReceiver
-          receiver = new ForgeHandshakeDataHandler.handshakeReceiver(handshakeServer, logger);
+      ForgeHandshakeUtils.handshakeReceiver
+          receiver = new ForgeHandshakeUtils.handshakeReceiver(handshakeServer, logger);
       future = receiver.downloadHandshake();
       future.thenAccept(p -> {
         handshake = p;
@@ -52,8 +50,8 @@ public class ForgeServerConnection {
       continuation.resumeWithException(new EOFException());
       return;
     }
-    ForgeHandshakeDataHandler.readVarInt(data); //Length
-    int packetID = ForgeHandshakeDataHandler.readVarInt(data);
+    ForgeHandshakeUtils.readVarInt(data); //Length
+    int packetID = ForgeHandshakeUtils.readVarInt(data);
 
     if(packetID == 1) {
       event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(defaultClientModlist));

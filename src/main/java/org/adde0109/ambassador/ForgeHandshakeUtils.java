@@ -1,50 +1,16 @@
 package org.adde0109.ambassador;
 
 import com.google.common.io.ByteArrayDataInput;
-import com.velocitypowered.api.event.Continuation;
-import com.velocitypowered.api.event.Subscribe;
-import com.velocitypowered.api.event.connection.PreLoginEvent;
-import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
-import com.velocitypowered.api.event.player.ServerPostConnectEvent;
-import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
-import com.velocitypowered.api.proxy.InboundConnection;
-import com.velocitypowered.api.proxy.LoginPhaseConnection;
-import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.util.ModInfo;
-import java.io.EOFException;
-import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
-public class ForgeHandshakeDataHandler {
-
-  public Map<RegisteredServer,CachedServerHandshake> cachedServerHandshake = new HashMap<RegisteredServer,CachedServerHandshake>();
-  public byte[] recivedClientACK;
-  public Map<RegisteredServer,byte[]> recivedClientModlist = new HashMap<RegisteredServer,byte[]>();
-  public LoginPhaseConnection connection;
-
-
-  private Map<InboundConnection,RegisteredServer> syncedConnections  = new HashMap<InboundConnection,RegisteredServer>();
-
-  private static final int PACKET_LENGTH_INDEX = 14;    //length of "fml:handshake"+1
-
-  private final Logger logger;
-  private final ProxyServer server;
-
-  public ForgeHandshakeDataHandler(Logger logger, ProxyServer server) {
-    this.logger = logger;
-    this.server = server;
-  }
-
+public class ForgeHandshakeUtils {
 
   public static int readVarInt(ByteArrayDataInput stream) {
     int i = 0;
