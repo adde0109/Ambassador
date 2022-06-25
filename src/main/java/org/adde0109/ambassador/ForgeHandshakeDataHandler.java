@@ -6,6 +6,7 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.event.player.ServerPostConnectEvent;
+import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.Player;
@@ -26,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class ForgeHandshakeDataHandler {
 
-  public Map<RegisteredServer, handshakeReceiver.CachedServerHandshake> cachedServerHandshake = new HashMap<RegisteredServer, handshakeReceiver.CachedServerHandshake>();
+  public Map<RegisteredServer,CachedServerHandshake> cachedServerHandshake = new HashMap<RegisteredServer,CachedServerHandshake>();
   public byte[] recivedClientACK;
   public Map<RegisteredServer,byte[]> recivedClientModlist = new HashMap<RegisteredServer,byte[]>();
   public LoginPhaseConnection connection;
@@ -36,43 +37,12 @@ public class ForgeHandshakeDataHandler {
 
   private static final int PACKET_LENGTH_INDEX = 14;    //length of "fml:handshake"+1
 
-  private final AmbassadorConfig config;
   private final Logger logger;
   private final ProxyServer server;
 
-  public ForgeHandshakeDataHandler(AmbassadorConfig config, Logger logger, ProxyServer server) {
-    this.config = config;
+  public ForgeHandshakeDataHandler(Logger logger, ProxyServer server) {
     this.logger = logger;
     this.server = server;
-  }
-
-  @Subscribe
-  public void onPreLoginEvent(PreLoginEvent event, Continuation continuation) {
-    if (!config.shouldHandle(event.getConnection().getProtocolVersion().getProtocol())) {
-      continuation.resume();
-      return;
-    }
-    RegisteredServer server = config.getServer(event.getConnection().getProtocolVersion().getProtocol());
-
-    this.server.getEventManager().fire(new PreSyncEvent(event.getUsername(),event.getConnection(), server))
-            .thenAccept((e) -> {
-              if (!e.getResult().getServer().isPresent()) {
-                //Do not sync
-                return;
-              }
-                getHandshake(server).whenComplete((msg,ex) -> {
-                  if (ex != null) {
-                    logger.warn("Could not sync player '" + event.getUsername() + "' to server '"
-                        + server.getServerInfo().getName() +"' Cause: " + ex.getMessage());
-                  } else {
-                    AtomicBoolean isForge = new AtomicBoolean(false);
-                    sendModlist(msg.modListPacket, (LoginPhaseConnection) event.getConnection(), server).thenAccept(isForge::set);
-                    sendOther(msg.otherPackets, (LoginPhaseConnection) event.getConnection(), server).thenAccept((ignored) -> {});
-                  }
-                  //Writes the messages
-                  continuation.resume();
-                });
-            });
   }
 
 
@@ -121,8 +91,8 @@ public class ForgeHandshakeDataHandler {
   }
 
 
-  public CompletableFuture<handshakeReceiver.CachedServerHandshake> getHandshake(RegisteredServer handshakeServer) {
-    CompletableFuture<handshakeReceiver.CachedServerHandshake> future;
+  public CompletableFuture<CachedServerHandshake> getHandshake(RegisteredServer handshakeServer) {
+    CompletableFuture<CachedServerHandshake> future;
     if((handshakeServer.getPlayersConnected().isEmpty()) || (!cachedServerHandshake.containsKey(handshakeServer))) {
       handshakeReceiver receiver = new handshakeReceiver(handshakeServer, logger);
       future = receiver.downloadHandshake();
@@ -139,7 +109,7 @@ public class ForgeHandshakeDataHandler {
   }
 
   //Should return ForgePlayer instead of Boolean in the future...
-  private CompletableFuture<Boolean> sendModlist(byte[] modListPacket, LoginPhaseConnection connection, RegisteredServer server) {
+  CompletableFuture<Boolean> sendModlist(byte[] modListPacket, LoginPhaseConnection connection, RegisteredServer server) {
     CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
     connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), modListPacket, responseBody ->  {
       if (responseBody != null) {
@@ -152,7 +122,7 @@ public class ForgeHandshakeDataHandler {
     return future;
   }
 
-  private CompletableFuture<Void> sendOther(List<byte[]> otherPackets, LoginPhaseConnection connection, RegisteredServer server) {
+  CompletableFuture<Void> sendOther(List<byte[]> otherPackets, LoginPhaseConnection connection, RegisteredServer server) {
     CompletableFuture<Void> future = new CompletableFuture<Void>();
     for (int i = 0;i<otherPackets.size();i++) {
       connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), otherPackets.get(i),
@@ -181,7 +151,7 @@ public class ForgeHandshakeDataHandler {
     return i;
   }
 
-  private class handshakeReceiver {
+  public static class handshakeReceiver {
 
     private int partLength;
 
@@ -192,7 +162,7 @@ public class ForgeHandshakeDataHandler {
     private int recivedBytes;
     private final RegisteredServer forgeServer;
 
-    private handshakeReceiver(RegisteredServer server, Logger logger) {
+    public handshakeReceiver(RegisteredServer server, Logger logger) {
 
       this.logger = logger;
       this.forgeServer = server;
@@ -217,7 +187,7 @@ public class ForgeHandshakeDataHandler {
 
     public void onBackendPong(ServerPing status, CompletableFuture<CachedServerHandshake> future) {
       numberOfRecivedParts++;
-      if ((!status.getModinfo().isPresent()) || (!Objects.equals(status.getModinfo().get().getType(), "ambassador"))) {
+      if ((status.getModinfo().isEmpty()) || (!Objects.equals(status.getModinfo().get().getType(), "ambassador"))) {
         future.completeExceptionally(new Exception("The specified Forge server is not running the Forge-side version of this plugin!"));
         return;
       }
@@ -252,8 +222,8 @@ public class ForgeHandshakeDataHandler {
 
     private void placePartInArray(byte[] temp, int partNr) {
       int head = partNr * partLength;
-      for (int i = 0; i < temp.length; i++) {
-        recivedParts[head] = temp[i];
+      for (byte b : temp) {
+        recivedParts[head] = b;
         head++;
         recivedBytes++;
       }
@@ -262,9 +232,9 @@ public class ForgeHandshakeDataHandler {
     private byte[] getPacket(byte[] data, int startByteIndex, int lastByteIndex) {
       byte[] temp = new byte[lastByteIndex - startByteIndex + 1];
 
-      for (int i = startByteIndex; i <= lastByteIndex; i++) {
-        temp[i - startByteIndex] = data[i];
-      }
+      if (lastByteIndex + 1 - startByteIndex >= 0)
+        System.arraycopy(data, startByteIndex, temp, 0,
+            lastByteIndex + 1 - startByteIndex);
       return temp;
     }
 
@@ -279,16 +249,17 @@ public class ForgeHandshakeDataHandler {
     }
 
 
-    private class CachedServerHandshake {
-      private String sessionID;
-      private byte[] modListPacket;
-      private List<byte[]> otherPackets;
 
-      private CachedServerHandshake(String sessionID,byte[] modListPacket,List<byte[]> otherPackets) {
-        this.sessionID = sessionID;
-        this.modListPacket = modListPacket;
-        this.otherPackets = otherPackets;
-      }
+  }
+  public static class CachedServerHandshake {
+    private String sessionID;
+    public byte[] modListPacket;
+    public List<byte[]> otherPackets;
+
+    private CachedServerHandshake(String sessionID,byte[] modListPacket,List<byte[]> otherPackets) {
+      this.sessionID = sessionID;
+      this.modListPacket = modListPacket;
+      this.otherPackets = otherPackets;
     }
   }
 }
