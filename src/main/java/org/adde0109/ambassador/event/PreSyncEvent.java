@@ -1,4 +1,4 @@
-package org.adde0109.ambassador;
+package org.adde0109.ambassador.event;
 
 import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;

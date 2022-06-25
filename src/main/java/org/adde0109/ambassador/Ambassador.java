@@ -1,9 +1,11 @@
 package org.adde0109.ambassador;
 
+import com.google.common.io.ByteArrayDataInput;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
+import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
@@ -11,8 +13,9 @@ import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 
+import java.io.EOFException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.adde0109.ambassador.event.PreSyncEvent;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
@@ -29,8 +32,8 @@ public class Ambassador {
 
   private static ForgeHandshakeDataHandler forgeHandshakeDataHandler;
 
-  public Map<RegisteredServer, ForgeServerConnection> forgeServerConnectionMap;
-  public Map<InetSocketAddress,ForgeConnection> incomingForgeConnections;
+  public Map<RegisteredServer, ForgeServerConnection> forgeServerConnectionMap = new HashMap<RegisteredServer,ForgeServerConnection>();
+  public Map<InetSocketAddress,ForgeConnection> incomingForgeConnections = new HashMap<InetSocketAddress,ForgeConnection>();;
 
   @Inject
   public Ambassador(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
@@ -67,7 +70,7 @@ public class Ambassador {
           }
           RegisteredServer newServer = e.getResult().getServer().get();
 
-          ForgeConnection forgeConnection =  new ForgeConnection((LoginPhaseConnection) event.getConnection());
+
 
           //If a connection does not already exist, create one.
           if (!forgeServerConnectionMap.containsKey(newServer)) {
@@ -76,38 +79,38 @@ public class Ambassador {
 
           ForgeServerConnection forgeServerConnection = forgeServerConnectionMap.get(newServer);
 
-          //Syncing
-          forgeServerConnection.getHandshake().whenComplete((msg,ex) -> {
-            if (ex != null) {
-              logger.warn("Could not sync player '" + event.getUsername() + "' to server '"
-                  + forgeServerConnection.getServerInfo().getName() +"' Cause: " + ex.getMessage());
-            } else {
-              forgeConnection.sendModlist(msg.modListPacket).thenAccept((response) -> {
-                if (response != null) {
-                  forgeServerConnection.setDefaultClientModlist(response);
-                }
-              });
-              forgeConnection.sendOther(msg.otherPackets).thenAccept((response) -> {
-                if (response != null) {
-                  forgeServerConnection.setDefaultClientACK(response);
-                }
-                onSyncComplete(forgeConnection);
-              });
-            }
-            //Writes the messages
-            continuation.resume();
-          });
+          //Syncing - continuation is forwarded to this method
+          ForgeConnection.sync((LoginPhaseConnection) event.getConnection(),forgeServerConnection,continuation).thenAccept(
+              this::onSyncComplete);
         });
   }
 
   public void onSyncComplete(ForgeConnection forgeConnection) {
-    if (forgeConnection.isModded()) {
+    if (forgeConnection != null) {
       incomingForgeConnections.values().removeIf((c) -> !c.getConnection().isActive());
       incomingForgeConnections.put(forgeConnection.getConnection().getRemoteAddress(), forgeConnection);
     }
   }
 
 
+  private ForgeConnection getForgeConnection(InetSocketAddress socketAddress) {
+    incomingForgeConnections.values().removeIf((c) -> !c.getConnection().isActive());
+    return incomingForgeConnections.get(socketAddress);
+  }
+
+
+
+  @Subscribe
+  public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
+    //Only respond the servers that we can respond to
+    if(!forgeServerConnectionMap.containsKey(event.getConnection().getServer())) {
+      continuation.resume();
+      return;
+    }
+    //Grab the connection responsible for this - no pun intended
+    ForgeServerConnection connection = forgeServerConnectionMap.get(event.getConnection().getServer());
+    connection.handle(event,continuation);
+  }
 
 
 

@@ -1,5 +1,6 @@
 package org.adde0109.ambassador;
 
+import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
@@ -13,19 +14,48 @@ public class ForgeConnection {
 
   private byte[] recivedClientModlist;
 
-  private boolean isModded = false;
+  private ForgeHandshakeDataHandler.CachedServerHandshake transmittedHandshake;
 
-  ForgeConnection(LoginPhaseConnection connection) {
+
+  private ForgeConnection(LoginPhaseConnection connection) {
     this.connection = connection;
+  }
+
+
+  public static CompletableFuture<ForgeConnection> sync(LoginPhaseConnection connection, ForgeServerConnection forgeServerConnection, Continuation continuation) {
+    CompletableFuture<ForgeConnection> future = new CompletableFuture<ForgeConnection>();
+    ForgeConnection forgeConnection = new ForgeConnection(connection);
+    forgeServerConnection.getHandshake().whenComplete((msg,ex) -> {
+      if (ex != null) {
+        future.completeExceptionally(ex);
+      } else {
+        forgeConnection.sendModlist(msg.modListPacket).thenAccept((response) -> {
+          if (response != null) {
+            forgeServerConnection.setDefaultClientModlist(response);
+            future.complete(forgeConnection);
+          } else {
+            future.complete(null);
+          }
+        });
+        forgeConnection.sendOther(msg.otherPackets).thenAccept((response) -> {
+          if (response != null) {
+            forgeServerConnection.setDefaultClientACK(response);
+            future.complete(forgeConnection);
+          } else {
+            future.complete(null);
+          }
+        });
+      }
+      //Write
+      continuation.resume();
+    });
+    return future;
   }
 
   public CompletableFuture<byte[]> sendModlist(byte[] modListPacket) {
     CompletableFuture<byte[]> future = new CompletableFuture<byte[]>();
     connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), modListPacket,
         responseBody -> {
-      if (responseBody != null) {
-        isModded = true;
-      }
       recivedClientModlist = responseBody;
       future.complete(recivedClientModlist);
         });
@@ -41,9 +71,6 @@ public class ForgeConnection {
     return future;
   }
 
-  public boolean isModded() {
-    return isModded;
-  }
   public LoginPhaseConnection getConnection() {
     return connection;
   }
