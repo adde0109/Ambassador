@@ -1,4 +1,4 @@
-package org.adde0109.ambassador;
+package org.adde0109.ambassador.Forge;
 
 import com.google.common.io.ByteArrayDataInput;
 import com.velocitypowered.api.proxy.server.RegisteredServer;

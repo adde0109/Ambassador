@@ -1,13 +1,18 @@
 package org.adde0109.ambassador;
 
 import com.google.inject.Inject;
+import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 
+import org.adde0109.ambassador.Forge.ForgeConnection;
+import org.adde0109.ambassador.Forge.ForgeHandshakeHandler;
+import org.checkerframework.checker.index.qual.PolyUpperBound;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
@@ -45,7 +50,13 @@ public class Ambassador {
 
   }
 
+  @Subscribe
+  public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
+    ForgeConnection forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer());
+    if (forgeConnection != null) {
 
-
+    }
+    continuation.resume();
+  }
 
 }

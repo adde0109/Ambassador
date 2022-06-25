@@ -1,4 +1,4 @@
-package org.adde0109.ambassador;
+package org.adde0109.ambassador.Forge;
 
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;

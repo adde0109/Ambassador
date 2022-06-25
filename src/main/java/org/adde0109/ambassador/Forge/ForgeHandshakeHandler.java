@@ -1,16 +1,17 @@
-package org.adde0109.ambassador;
+package org.adde0109.ambassador.Forge;
 
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
-import org.adde0109.ambassador.event.PreSyncEvent;
+import org.adde0109.ambassador.AmbassadorConfig;
 import org.slf4j.Logger;
 
 public class ForgeHandshakeHandler {
@@ -24,7 +25,7 @@ public class ForgeHandshakeHandler {
   public Map<InetSocketAddress,ForgeConnection> incomingForgeConnections = new HashMap<InetSocketAddress,ForgeConnection>();
 
 
-  ForgeHandshakeHandler(AmbassadorConfig config, ProxyServer server, Logger logger) {
+  public ForgeHandshakeHandler(AmbassadorConfig config, ProxyServer server, Logger logger) {
     this.config = config;
     this.server = server;
     this.logger = logger;
@@ -38,36 +39,35 @@ public class ForgeHandshakeHandler {
     }
     RegisteredServer defaultServer = config.getServer(event.getConnection().getProtocolVersion().getProtocol());
 
-    this.server.getEventManager().fire(new PreSyncEvent(event.getUsername(),event.getConnection(), defaultServer))
-        .thenAccept((e) -> {
-          if (e.getResult().getServer().isEmpty()) {
-            //Do not sync
+          if (defaultServer == null) {
+            continuation.resume();
             return;
           }
-          RegisteredServer newServer = e.getResult().getServer().get();
 
 
 
           //If a connection does not already exist, create one.
-          if (!forgeServerConnectionMap.containsKey(newServer)) {
-            forgeServerConnectionMap.put(newServer, new ForgeServerConnection(newServer,logger));
+          if (!forgeServerConnectionMap.containsKey(defaultServer)) {
+            forgeServerConnectionMap.put(defaultServer, new ForgeServerConnection(defaultServer,logger));
           }
 
-          ForgeServerConnection forgeServerConnection = forgeServerConnectionMap.get(newServer);
+          ForgeServerConnection forgeServerConnection = forgeServerConnectionMap.get(defaultServer);
 
           //Syncing - continuation is forwarded to this method
           ForgeConnection.sync((LoginPhaseConnection) event.getConnection(),forgeServerConnection,continuation).thenAccept(
               this::onSyncComplete);
-        });
   }
 
-  public void onSyncComplete(ForgeConnection forgeConnection) {
+  private void onSyncComplete(ForgeConnection forgeConnection) {
     if (forgeConnection != null) {
       incomingForgeConnections.values().removeIf((c) -> !c.getConnection().isActive());
       incomingForgeConnections.put(forgeConnection.getConnection().getRemoteAddress(), forgeConnection);
     }
   }
 
+  public ForgeConnection getForgeConnection(Player player) {
+    return getForgeConnection(player.getRemoteAddress());
+  }
 
   private ForgeConnection getForgeConnection(InetSocketAddress socketAddress) {
     incomingForgeConnections.values().removeIf((c) -> !c.getConnection().isActive());
