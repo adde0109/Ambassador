@@ -43,6 +43,7 @@ public class ForgeConnection {
             future.complete(null);
           }
         });
+        forgeConnection.transmittedHandshake = msg;
       }
       //Write
       continuation.resume();
@@ -71,6 +72,10 @@ public class ForgeConnection {
 
   public LoginPhaseConnection getConnection() {
     return connection;
+  }
+
+  public ForgeHandshakeUtils.CachedServerHandshake getTransmittedHandshake() {
+    return transmittedHandshake;
   }
 
 }

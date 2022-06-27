@@ -12,6 +12,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 
 import org.adde0109.ambassador.Forge.ForgeConnection;
 import org.adde0109.ambassador.Forge.ForgeHandshakeHandler;
+import org.adde0109.ambassador.Forge.ForgeServerConnection;
 import org.checkerframework.checker.index.qual.PolyUpperBound;
 import org.slf4j.Logger;
 
@@ -52,11 +53,31 @@ public class Ambassador {
 
   @Subscribe
   public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
-    ForgeConnection forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer());
-    if (forgeConnection != null) {
-
+    Optional<ForgeConnection> forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer());
+    Optional<ForgeServerConnection> forgeServerConnectionOptional = forgeHandshakeHandler.getForgeServerConnection(event.getOriginalServer());
+    if (forgeConnection.isPresent()) {
+      ForgeServerConnection forgeServerConnection;
+      if (forgeServerConnectionOptional.isEmpty()) {
+        forgeServerConnection = new ForgeServerConnection(event.getOriginalServer(), logger);
+      } else {
+        forgeServerConnection = forgeServerConnectionOptional.get();
+      }
+      forgeServerConnection.getHandshake().whenComplete((msg, ex) -> {
+        if (ex != null) {
+          continuation.resume();
+        } else {
+          if (Arrays.equals(msg.modListPacket,forgeConnection.get().getTransmittedHandshake().modListPacket)) {
+            continuation.resume();
+          } else {
+            event.setResult(ServerPreConnectEvent.ServerResult.denied());
+            logger.warn("Resync needed");
+            continuation.resume();
+          }
+        }
+      });
+    } else {
+      continuation.resume();
     }
-    continuation.resume();
   }
 
 }

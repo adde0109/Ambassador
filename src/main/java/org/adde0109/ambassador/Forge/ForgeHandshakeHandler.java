@@ -11,6 +11,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.adde0109.ambassador.AmbassadorConfig;
 import org.slf4j.Logger;
 
@@ -20,9 +21,9 @@ public class ForgeHandshakeHandler {
   private final ProxyServer server;
   private final Logger logger;
 
-  public Map<RegisteredServer, ForgeServerConnection>
+  private Map<RegisteredServer, ForgeServerConnection>
       forgeServerConnectionMap = new HashMap<RegisteredServer,ForgeServerConnection>();
-  public Map<InetSocketAddress,ForgeConnection> incomingForgeConnections = new HashMap<InetSocketAddress,ForgeConnection>();
+  private Map<InetSocketAddress,ForgeConnection> incomingForgeConnections = new HashMap<InetSocketAddress,ForgeConnection>();
 
 
   public ForgeHandshakeHandler(AmbassadorConfig config, ProxyServer server, Logger logger) {
@@ -65,13 +66,17 @@ public class ForgeHandshakeHandler {
     }
   }
 
-  public ForgeConnection getForgeConnection(Player player) {
+  public Optional<ForgeConnection> getForgeConnection(Player player) {
     return getForgeConnection(player.getRemoteAddress());
   }
 
-  private ForgeConnection getForgeConnection(InetSocketAddress socketAddress) {
+  private Optional<ForgeConnection> getForgeConnection(InetSocketAddress socketAddress) {
     incomingForgeConnections.values().removeIf((c) -> !c.getConnection().isActive());
-    return incomingForgeConnections.get(socketAddress);
+    return Optional.ofNullable(incomingForgeConnections.get(socketAddress));
+  }
+
+  public Optional<ForgeServerConnection> getForgeServerConnection(RegisteredServer registeredServer) {
+    return Optional.ofNullable(forgeServerConnectionMap.get(registeredServer));
   }
 
 
