@@ -79,7 +79,9 @@ public class ForgeHandshakeHandler {
     return Optional.ofNullable(forgeServerConnectionMap.get(registeredServer));
   }
 
-
+  public void registerForgeServer(RegisteredServer server, ForgeServerConnection forgeServerConnection) {
+    forgeServerConnectionMap.put(server,forgeServerConnection);
+  }
 
   @Subscribe
   public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {

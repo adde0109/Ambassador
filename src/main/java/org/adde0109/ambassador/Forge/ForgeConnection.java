@@ -11,6 +11,7 @@ public class ForgeConnection {
   private final LoginPhaseConnection connection;
 
   private byte[] recivedClientModlist;
+  private static byte[] recivedClientACK;
 
   private ForgeHandshakeUtils.CachedServerHandshake transmittedHandshake;
 
@@ -65,7 +66,10 @@ public class ForgeConnection {
     CompletableFuture<byte[]> future = new CompletableFuture<byte[]>();
     for (int i = 0;i<otherPackets.size();i++) {
       connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), otherPackets.get(i),
-          (i<(otherPackets.size()-1)) ? responseBody -> {} : future::complete);
+          (i<(otherPackets.size()-1)) ? responseBody -> {} : responseBody -> {
+        recivedClientACK = responseBody;
+        future.complete(responseBody);
+          });
     }
     return future;
   }
@@ -78,4 +82,11 @@ public class ForgeConnection {
     return transmittedHandshake;
   }
 
+  public byte[] getRecivedClientModlist() {
+    return recivedClientModlist;
+  }
+
+  public static byte[] getRecivedClientACK() {
+    return recivedClientACK;
+  }
 }

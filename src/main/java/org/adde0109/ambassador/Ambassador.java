@@ -31,6 +31,7 @@ public class Ambassador {
   private ForgeHandshakeHandler forgeHandshakeHandler;
 
 
+
   @Inject
   public Ambassador(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
     this.server = server;
@@ -74,6 +75,12 @@ public class Ambassador {
             continuation.resume();
           }
         }
+        if (forgeServerConnectionOptional.isEmpty()) {
+          forgeServerConnection.setDefaultClientModlist(forgeConnection.get().getRecivedClientModlist());
+          forgeServerConnection.setDefaultClientACK(ForgeConnection.getRecivedClientACK());
+          forgeHandshakeHandler.registerForgeServer(event.getOriginalServer(), forgeServerConnection);
+        }
+
       });
     } else {
       continuation.resume();
