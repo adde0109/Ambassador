@@ -9,7 +9,7 @@
 #The name of the forge server that forge players should be able to connect to.
 #This server must have Ambassador-forge installed.
 #The name should be the same as specified in the "velocity.toml" config, e.g. "lobby".
-forge-server = "dsfgdg"
+forge-server = ""
 
 #Some modpacks are not compatible with vanilla servers.
 #To make sure they don't get connected to one upon login (like a vanilla lobby), change this to true.
