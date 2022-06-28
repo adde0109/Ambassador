@@ -86,7 +86,8 @@ public class ForgeHandshakeHandler {
   @Subscribe
   public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
     //Only respond the servers that we can respond to
-    if(!forgeServerConnectionMap.containsKey(event.getConnection().getServer())) {
+    if((!forgeServerConnectionMap.containsKey(event.getConnection().getServer())
+        || (getForgeConnection(event.getConnection().getPlayer()).isEmpty()))) {
       continuation.resume();
       return;
     }

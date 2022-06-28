@@ -35,6 +35,10 @@ public class AmbassadorConfig {
     return settings.differentiators.get(protocolVersion).handshakeServer;
   }
 
+  public boolean getForced (int protocolVersion) {
+    return settings.differentiators.get(protocolVersion).forced;
+  }
+
   public boolean shouldHandle(int protocolVersion) {
     return settings.differentiators.containsKey(protocolVersion);
   }

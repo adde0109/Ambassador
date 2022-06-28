@@ -2,7 +2,9 @@ package org.adde0109.ambassador;
 
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Continuation;
+import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
@@ -10,6 +12,7 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 
+import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Forge.ForgeConnection;
 import org.adde0109.ambassador.Forge.ForgeHandshakeHandler;
 import org.adde0109.ambassador.Forge.ForgeServerConnection;
@@ -75,6 +78,7 @@ public class Ambassador {
             continuation.resume();
           }
         }
+        //Register newly discovered forge server
         if (forgeServerConnectionOptional.isEmpty()) {
           forgeServerConnection.setDefaultClientModlist(forgeConnection.get().getRecivedClientModlist());
           forgeServerConnection.setDefaultClientACK(ForgeConnection.getRecivedClientACK());
@@ -82,9 +86,28 @@ public class Ambassador {
         }
 
       });
+      //If vanilla tries to connect to forge
+    } else if (forgeServerConnectionOptional.isPresent() && (event.getPreviousServer() != null)){
+      event.setResult(ServerPreConnectEvent.ServerResult.denied());
+      event.getPlayer().sendMessage(Component.text("This server requires Forge!"));
+      continuation.resume();
     } else {
       continuation.resume();
     }
+  }
+
+
+  @Subscribe
+  public void onPlayerChooseInitialServerEvent(PlayerChooseInitialServerEvent event, Continuation continuation) {
+    //Only handle Forge connections
+    if((event.getInitialServer().isPresent()) && (forgeHandshakeHandler.getForgeConnection(event.getPlayer()).isPresent())) {
+      //Forge client
+      ForgeConnection forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer()).get();
+      if (config.getForced(forgeConnection.getConnection().getProtocolVersion().getProtocol())) {
+        event.setInitialServer(config.getServer(forgeConnection.getConnection().getProtocolVersion().getProtocol()));
+      }
+    }
+    continuation.resume();
   }
 
 }
