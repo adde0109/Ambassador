@@ -19,7 +19,7 @@ This plugin is right now in it's alpha stage and should not be used in productio
 3. If you wish to use modern forwarding, close the server and open "ambassador-common.toml" in the config folder and put your forwarding secret in the "forwardingSecret" field.
 4. You are now ready to start the server and connect to it with Velocity!
 
-##Features
+## Features
 * Server Switching.
 * Force forge clients to connect directly to forge server if mods don't allow vanilla.
 * Connect to diffrent forge servers depending on client version.
