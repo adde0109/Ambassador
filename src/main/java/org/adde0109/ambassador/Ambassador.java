@@ -15,6 +15,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Forge.ForgeConnection;
 import org.adde0109.ambassador.Forge.ForgeHandshakeHandler;
+import org.adde0109.ambassador.Forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.Forge.ForgeServerConnection;
 import org.checkerframework.checker.index.qual.PolyUpperBound;
 import org.slf4j.Logger;
@@ -53,6 +54,7 @@ public class Ambassador {
       logger.warn("Ambassador will be disabled because of errors");
     }
 
+    ForgeHandshakeUtils.HandshakeReceiver.logger = logger;
   }
 
   @Subscribe
@@ -70,7 +72,7 @@ public class Ambassador {
         if (ex != null) {
           continuation.resume();
         } else {
-          if (Arrays.equals(msg.modListPacket,forgeConnection.get().getTransmittedHandshake().modListPacket)) {
+          if (msg.equals(forgeConnection.get().getTransmittedHandshake())) {
             continuation.resume();
           } else {
             event.setResult(ServerPreConnectEvent.ServerResult.denied());

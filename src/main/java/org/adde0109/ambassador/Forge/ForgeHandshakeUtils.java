@@ -28,77 +28,112 @@ public class ForgeHandshakeUtils {
     return i;
   }
 
-  public static class handshakeReceiver {
+  public static class HandshakeReceiver {
 
     private int partLength;
 
-    private final Logger logger;
+    public static Logger logger;
 
     private int numberOfRecivedParts;
-    private byte[] recivedParts;
     private int recivedBytes;
-    private final RegisteredServer forgeServer;
 
-    public handshakeReceiver(RegisteredServer server, Logger logger) {
+    private final int numberOfParts;
+    private final long checksum;
+    private final int[] separators;
+    private final byte[] recivedParts;
 
-      this.logger = logger;
-      this.forgeServer = server;
 
+    private HandshakeReceiver(ServerPing serverPing) throws Exception {
+      if ((serverPing.getModinfo().isEmpty()) || (!Objects.equals(serverPing.getModinfo().get().getType(), "ambassador"))) {
+        throw new Exception("The specified Forge server is not running the Forge-side version of this plugin!");
+      }
+
+      ModInfo.Mod pair = serverPing.getModinfo().orElseThrow(IllegalAccessError::new).getMods().get(0);
+
+      this.separators = Arrays.stream(pair.getVersion().substring(pair.getVersion().indexOf(":") + 1).split(":")).map(Integer::parseInt).mapToInt(x -> x).toArray();
+      this.checksum = Long.parseUnsignedLong((pair.getVersion().split(":")[0].split("-"))[3],16);
+      this.numberOfParts = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[1]);
+      int totalLength = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[2]);
+      this.recivedParts = new byte[totalLength];
     }
 
-    public CompletableFuture<CachedServerHandshake> downloadHandshake() {
+
+
+    public static CompletableFuture<CachedServerHandshake> downloadHandshake(RegisteredServer forgeServer) {
       CompletableFuture<CachedServerHandshake> future = new CompletableFuture<CachedServerHandshake>();
-      ping(future);
-      return future;
-    }
-
-    private void ping(CompletableFuture<CachedServerHandshake> future) {
       forgeServer.ping().whenComplete((msg,ex) -> {
         if (ex != null) {
           future.completeExceptionally(ex);
         } else {
-          onBackendPong(msg, future);
+          try {
+            HandshakeReceiver handshakeReceiver = new HandshakeReceiver(msg);
+            handshakeReceiver.handle(msg);
+            handshakeReceiver.downloadLoop(forgeServer,future);
+          } catch (Exception e) {
+            future.completeExceptionally(e);
+          }
         }
       });
+      return future;
     }
 
-    public void onBackendPong(ServerPing status, CompletableFuture<CachedServerHandshake> future) {
-      numberOfRecivedParts++;
-      if ((status.getModinfo().isEmpty()) || (!Objects.equals(status.getModinfo().get().getType(), "ambassador"))) {
-        future.completeExceptionally(new Exception("The specified Forge server is not running the Forge-side version of this plugin!"));
-        return;
-      }
+    public static CompletableFuture<CachedServerHandshake> downloadHandshake(RegisteredServer forgeServer, CachedServerHandshake oldHandshake) {
+      CompletableFuture<CachedServerHandshake> future = new CompletableFuture<CachedServerHandshake>();
+      forgeServer.ping().whenComplete((msg,ex) -> {
+        if (ex != null) {
+          future.completeExceptionally(ex);
+        } else {
+          try {
+            HandshakeReceiver handshakeReceiver = new HandshakeReceiver(msg);
+            if (handshakeReceiver.getChecksum() == oldHandshake.fingerprint) {
+              future.complete(oldHandshake);
+            } else {
+              handshakeReceiver.handle(msg);
+              handshakeReceiver.downloadLoop(forgeServer,future);
+            }
+          } catch (Exception e) {
+            future.completeExceptionally(e);
+          }
+        }
+      });
+      return future;
+    }
 
+    private long getChecksum() {
+      return checksum;
+    }
+
+    private void downloadLoop(RegisteredServer server, CompletableFuture<CachedServerHandshake> future) {
+      if (numberOfRecivedParts < numberOfParts) {
+        server.ping().whenComplete((msg,ex) -> {
+          if (ex != null) {
+            future.completeExceptionally(ex);
+          } else {
+            handle(msg);
+            downloadLoop(server, future);
+          }
+        });
+      } else {
+        List<byte[]> packets = splitPackets(recivedParts,separators);
+        future.complete(new CachedServerHandshake(checksum,packets.get(0),packets.subList(1,packets.size()-1)));
+      }
+    }
+
+
+    private void handle(ServerPing status) {
+      numberOfRecivedParts++;
 
       ModInfo.Mod pair = status.getModinfo().orElseThrow(IllegalAccessError::new).getMods().get(0);
-
-      int[] values = Arrays.stream(pair.getVersion().substring(pair.getVersion().indexOf(":") + 1).split(":")).map(Integer::parseInt).mapToInt(x -> x).toArray();
-
-      int totalLength = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[2]);
-      int parts = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[1]);
       int recivedPartNr = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[0]);
-
-      logger.info("Downloaded part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(parts));
-
-      if(recivedParts == null) {
-        recivedParts = new byte[totalLength];
-        partLength = pair.getId().getBytes(StandardCharsets.ISO_8859_1).length;
-      }
-
       placePartInArray(pair.getId().getBytes(StandardCharsets.ISO_8859_1), recivedPartNr - 1);
 
-      if (numberOfRecivedParts >= parts) {
-        List<byte[]> packets = splitPackets(recivedParts,values);
-        future.complete(new CachedServerHandshake("",packets.get(0),packets.subList(1,packets.size()-1)));
-      } else {
-        ping(future);
-      }
+      logger.info("Downloaded part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(numberOfParts));
     }
 
 
 
     private void placePartInArray(byte[] temp, int partNr) {
-      int head = partNr * partLength;
+      int head = (partNr == numberOfParts-1) ? recivedParts.length-temp.length : partNr*temp.length;
       for (byte b : temp) {
         recivedParts[head] = b;
         head++;
@@ -129,14 +164,18 @@ public class ForgeHandshakeUtils {
 
   }
   public static class CachedServerHandshake {
-    private String sessionID;
+    private long fingerprint;
     public byte[] modListPacket;
     public List<byte[]> otherPackets;
 
-    private CachedServerHandshake(String sessionID,byte[] modListPacket,List<byte[]> otherPackets) {
-      this.sessionID = sessionID;
+    private CachedServerHandshake(long fingerprint,byte[] modListPacket,List<byte[]> otherPackets) {
+      this.fingerprint = fingerprint;
       this.modListPacket = modListPacket;
       this.otherPackets = otherPackets;
+    }
+
+    public boolean equals(CachedServerHandshake cachedServerHandshake) {
+      return this.fingerprint == cachedServerHandshake.fingerprint;
     }
   }
 }

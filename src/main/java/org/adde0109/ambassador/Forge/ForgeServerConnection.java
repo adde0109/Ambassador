@@ -29,19 +29,15 @@ public class ForgeServerConnection {
 
   public CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> getHandshake() {
     CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> future;
-    if (handshakeServer.getPlayersConnected().isEmpty() || (handshake == null)) {
-      ForgeHandshakeUtils.handshakeReceiver
-          receiver = new ForgeHandshakeUtils.handshakeReceiver(handshakeServer, logger);
-      future = receiver.downloadHandshake();
-      future.thenAccept(p -> {
-        handshake = p;
-      });
-      return future;
+    if (handshake == null) {
+      future = ForgeHandshakeUtils.HandshakeReceiver.downloadHandshake(handshakeServer);
     } else {
-      future = new CompletableFuture<>();
-      future.complete(handshake);
-      return future;
+      future = ForgeHandshakeUtils.HandshakeReceiver.downloadHandshake(handshakeServer,handshake);
     }
+    future.thenAccept(p -> {
+      handshake = p;
+    });
+    return future;
   }
 
   public void handle(ServerLoginPluginMessageEvent event, Continuation continuation) {
