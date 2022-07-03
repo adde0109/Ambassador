@@ -1,4 +1,4 @@
-package org.adde0109.ambassador.Forge;
+package org.adde0109.ambassador.forge;
 
 import com.google.common.io.ByteArrayDataInput;
 import com.velocitypowered.api.event.Continuation;
@@ -34,9 +34,7 @@ public class ForgeServerConnection {
     } else {
       future = ForgeHandshakeUtils.HandshakeReceiver.downloadHandshake(handshakeServer,handshake);
     }
-    future.thenAccept(p -> {
-      handshake = p;
-    });
+    future.thenAccept(p -> handshake = p);
     return future;
   }
 

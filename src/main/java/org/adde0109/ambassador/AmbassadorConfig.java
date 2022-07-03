@@ -55,7 +55,7 @@ public class AmbassadorConfig {
 
     }
     catch (IOException e) {
-      logger.error("Config related error: " + e.toString());
+      logger.error("Config related error: " + e);
       return null;
     }
 
@@ -78,7 +78,7 @@ public class AmbassadorConfig {
       return ambassadorConfig;
     }
     catch (Exception e) {
-      logger.error("Config related error: " + e.toString());
+      logger.error("Config related error: " + e);
       return null;
     }
   }
@@ -115,7 +115,7 @@ public class AmbassadorConfig {
       if (config != null) {
         String serverName = config.getOrElse("forge-server", "");
         if (!Objects.equals(serverName, ""))
-        handshakeServer = server.getServer(serverName)
+          handshakeServer = server.getServer(serverName)
                 .orElseThrow(() -> new Exception(serverName + "is not a registered server!"));
         this.forced = config.getOrElse("forced",forced);
       }

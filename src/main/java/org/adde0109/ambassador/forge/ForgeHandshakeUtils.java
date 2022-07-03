@@ -1,4 +1,4 @@
-package org.adde0109.ambassador.Forge;
+package org.adde0109.ambassador.forge;
 
 import com.google.common.io.ByteArrayDataInput;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
@@ -60,7 +60,7 @@ public class ForgeHandshakeUtils {
 
 
     public static CompletableFuture<CachedServerHandshake> downloadHandshake(RegisteredServer forgeServer) {
-      CompletableFuture<CachedServerHandshake> future = new CompletableFuture<CachedServerHandshake>();
+      CompletableFuture<CachedServerHandshake> future = new CompletableFuture<>();
       forgeServer.ping().whenComplete((msg,ex) -> {
         if (ex != null) {
           future.completeExceptionally(ex);
@@ -78,7 +78,7 @@ public class ForgeHandshakeUtils {
     }
 
     public static CompletableFuture<CachedServerHandshake> downloadHandshake(RegisteredServer forgeServer, CachedServerHandshake oldHandshake) {
-      CompletableFuture<CachedServerHandshake> future = new CompletableFuture<CachedServerHandshake>();
+      CompletableFuture<CachedServerHandshake> future = new CompletableFuture<>();
       forgeServer.ping().whenComplete((msg,ex) -> {
         if (ex != null) {
           future.completeExceptionally(ex);
@@ -127,7 +127,7 @@ public class ForgeHandshakeUtils {
       int recivedPartNr = Integer.parseInt((pair.getVersion().split(":")[0].split("-"))[0]);
       placePartInArray(pair.getId().getBytes(StandardCharsets.ISO_8859_1), recivedPartNr - 1);
 
-      logger.info("Downloaded part " + String.valueOf(numberOfRecivedParts) + " out of " + String.valueOf(numberOfParts));
+      logger.info("Downloaded part " + numberOfRecivedParts + " out of " + numberOfParts);
     }
 
 
@@ -164,7 +164,7 @@ public class ForgeHandshakeUtils {
 
   }
   public static class CachedServerHandshake {
-    private long fingerprint;
+    private final long fingerprint;
     public byte[] modListPacket;
     public List<byte[]> otherPackets;
 
