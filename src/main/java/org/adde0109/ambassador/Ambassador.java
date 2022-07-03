@@ -2,7 +2,6 @@ package org.adde0109.ambassador;
 
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Continuation;
-import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
@@ -13,21 +12,23 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.Forge.ForgeConnection;
 import org.adde0109.ambassador.Forge.ForgeHandshakeHandler;
 import org.adde0109.ambassador.Forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.Forge.ForgeServerConnection;
-import org.checkerframework.checker.index.qual.PolyUpperBound;
+import org.bstats.velocity.Metrics;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
 import java.util.*;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "0.1.0-SNAPSHOT", url = "", description = "", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.0-SNAPSHOT", url = "", description = "", authors = {"adde0109"})
 public class Ambassador {
 
   private final ProxyServer server;
   private final Logger logger;
+  private final Metrics.Factory metricsFactory;
   private final Path dataDirectory;
   private Optional<RegisteredServer> forgeServer;
   private AmbassadorConfig config;
@@ -37,14 +38,17 @@ public class Ambassador {
 
 
   @Inject
-  public Ambassador(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
+  public Ambassador(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory, Metrics.Factory metricsFactory) {
     this.server = server;
     this.logger = logger;
     this.dataDirectory = dataDirectory;
+    this.metricsFactory = metricsFactory;
   }
 
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
+    Metrics metrics = metricsFactory.make(this, 15655);
+
     config = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
     if(config != null) {
       forgeHandshakeHandler = new ForgeHandshakeHandler(config, server, logger);
@@ -89,9 +93,9 @@ public class Ambassador {
 
       });
       //If vanilla tries to connect to forge
-    } else if (forgeServerConnectionOptional.isPresent() && (event.getPreviousServer() != null)){
+    } else if (forgeServerConnectionOptional.isPresent() && (event.getPlayer().getCurrentServer().isPresent())){
       event.setResult(ServerPreConnectEvent.ServerResult.denied());
-      event.getPlayer().sendMessage(Component.text("This server requires Forge!"));
+      event.getPlayer().sendMessage(Component.text("This server requires Forge!", NamedTextColor.RED));
       continuation.resume();
     } else {
       continuation.resume();
