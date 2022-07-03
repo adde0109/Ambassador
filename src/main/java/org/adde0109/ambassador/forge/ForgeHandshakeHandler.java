@@ -1,4 +1,4 @@
-package org.adde0109.ambassador.Forge;
+package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
@@ -21,9 +21,9 @@ public class ForgeHandshakeHandler {
   private final ProxyServer server;
   private final Logger logger;
 
-  private Map<RegisteredServer, ForgeServerConnection>
-      forgeServerConnectionMap = new HashMap<RegisteredServer,ForgeServerConnection>();
-  private Map<InetSocketAddress,ForgeConnection> incomingForgeConnections = new HashMap<InetSocketAddress,ForgeConnection>();
+  private final Map<RegisteredServer, ForgeServerConnection>
+      forgeServerConnectionMap = new HashMap<>();
+  private final Map<InetSocketAddress,ForgeConnection> incomingForgeConnections = new HashMap<>();
 
 
   public ForgeHandshakeHandler(AmbassadorConfig config, ProxyServer server, Logger logger) {

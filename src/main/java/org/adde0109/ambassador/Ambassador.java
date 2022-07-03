@@ -13,17 +13,17 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.adde0109.ambassador.Forge.ForgeConnection;
-import org.adde0109.ambassador.Forge.ForgeHandshakeHandler;
-import org.adde0109.ambassador.Forge.ForgeHandshakeUtils;
-import org.adde0109.ambassador.Forge.ForgeServerConnection;
+import org.adde0109.ambassador.forge.ForgeConnection;
+import org.adde0109.ambassador.forge.ForgeHandshakeHandler;
+import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
+import org.adde0109.ambassador.forge.ForgeServerConnection;
 import org.bstats.velocity.Metrics;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
 import java.util.*;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.0-SNAPSHOT", url = "", description = "", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.0-SNAPSHOT", authors = {"adde0109"})
 public class Ambassador {
 
   private final ProxyServer server;
@@ -47,7 +47,7 @@ public class Ambassador {
 
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
-    Metrics metrics = metricsFactory.make(this, 15655);
+    metricsFactory.make(this, 15655);
 
     config = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
     if(config != null) {

@@ -1,4 +1,4 @@
-package org.adde0109.ambassador.Forge;
+package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
@@ -22,7 +22,7 @@ public class ForgeConnection {
 
 
   public static CompletableFuture<ForgeConnection> sync(LoginPhaseConnection connection, ForgeServerConnection forgeServerConnection, Continuation continuation) {
-    CompletableFuture<ForgeConnection> future = new CompletableFuture<ForgeConnection>();
+    CompletableFuture<ForgeConnection> future = new CompletableFuture<>();
     ForgeConnection forgeConnection = new ForgeConnection(connection);
     forgeServerConnection.getHandshake().whenComplete((msg,ex) -> {
       if (ex != null) {
@@ -53,7 +53,7 @@ public class ForgeConnection {
   }
 
   public CompletableFuture<byte[]> sendModlist(byte[] modListPacket) {
-    CompletableFuture<byte[]> future = new CompletableFuture<byte[]>();
+    CompletableFuture<byte[]> future = new CompletableFuture<>();
     connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), modListPacket,
         responseBody -> {
       recivedClientModlist = responseBody;
@@ -63,7 +63,7 @@ public class ForgeConnection {
   }
 
   CompletableFuture<byte[]> sendOther(List<byte[]> otherPackets) {
-    CompletableFuture<byte[]> future = new CompletableFuture<byte[]>();
+    CompletableFuture<byte[]> future = new CompletableFuture<>();
     for (int i = 0;i<otherPackets.size();i++) {
       connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml","loginwrapper"), otherPackets.get(i),
           (i<(otherPackets.size()-1)) ? responseBody -> {} : responseBody -> {
