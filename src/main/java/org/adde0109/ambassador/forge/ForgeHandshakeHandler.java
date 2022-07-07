@@ -1,5 +1,6 @@
 package org.adde0109.ambassador.forge;
 
+import com.google.common.io.ByteArrayDataInput;
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
@@ -8,6 +9,7 @@ import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import java.io.EOFException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -85,14 +87,11 @@ public class ForgeHandshakeHandler {
 
   @Subscribe
   public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
-    //Only respond the servers that we can respond to
-    if((!forgeServerConnectionMap.containsKey(event.getConnection().getServer())
-        || (getForgeConnection(event.getConnection().getPlayer()).isEmpty()))) {
+    if (incomingForgeConnections.containsKey(event.getConnection().getPlayer().getRemoteAddress())) {
+      incomingForgeConnections.get(event.getConnection().getPlayer().getRemoteAddress())
+          .handleServerHandshakePacket(event,continuation);
+    } else {
       continuation.resume();
-      return;
     }
-    //Grab the connection responsible for this - no pun intended
-    ForgeServerConnection connection = forgeServerConnectionMap.get(event.getConnection().getServer());
-    connection.handle(event,continuation);
   }
 }

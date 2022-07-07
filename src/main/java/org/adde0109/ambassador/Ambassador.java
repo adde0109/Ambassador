@@ -3,14 +3,17 @@ package org.adde0109.ambassador;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyPingEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 
+import com.velocitypowered.api.proxy.server.ServerPing;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.forge.ForgeConnection;
@@ -23,14 +26,13 @@ import org.slf4j.Logger;
 import java.nio.file.Path;
 import java.util.*;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.0-SNAPSHOT", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.1-SNAPSHOT", authors = {"adde0109"})
 public class Ambassador {
 
   private final ProxyServer server;
   private final Logger logger;
   private final Metrics.Factory metricsFactory;
   private final Path dataDirectory;
-  private Optional<RegisteredServer> forgeServer;
   private AmbassadorConfig config;
 
   private ForgeHandshakeHandler forgeHandshakeHandler;
@@ -86,8 +88,6 @@ public class Ambassador {
         }
         //Register newly discovered forge server
         if (forgeServerConnectionOptional.isEmpty()) {
-          forgeServerConnection.setDefaultClientModlist(forgeConnection.get().getRecivedClientModlist());
-          forgeServerConnection.setDefaultClientACK(ForgeConnection.getRecivedClientACK());
           forgeHandshakeHandler.registerForgeServer(event.getOriginalServer(), forgeServerConnection);
         }
 
@@ -102,6 +102,10 @@ public class Ambassador {
     }
   }
 
+  @Subscribe
+  public void onKickedFromServerEvent(KickedFromServerEvent event, Continuation continuation) {
+    continuation.resume();
+  }
 
   @Subscribe
   public void onPlayerChooseInitialServerEvent(PlayerChooseInitialServerEvent event, Continuation continuation) {
@@ -115,5 +119,4 @@ public class Ambassador {
     }
     continuation.resume();
   }
-
 }
