@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.AmbassadorConfig;
 import org.slf4j.Logger;
@@ -114,20 +115,26 @@ public class ForgeHandshakeHandler {
 
   @Subscribe
   public void onKickedFromServerEvent(KickedFromServerEvent event, Continuation continuation) {
-    if (getForgeServerConnection(event.getServer()).isPresent() && getForgeConnection(event.getPlayer()).isEmpty()) {
-      //Turns out the server the vanilla client is connecting to is forge. Let's handle the connection error.
-      logger.info("Vanilla player {} tried to connect to forge server {}. The connection error can be ignored.",
-          event.getPlayer(),event.getServer().getServerInfo().getName());
-      KickedFromServerEvent.ServerKickResult result = event.getResult();
-      Component component = Component.text("The server you were trying to connect to requires Forge to be installed.", NamedTextColor.RED);
-      if (result instanceof KickedFromServerEvent.DisconnectPlayer) {
-        event.setResult(KickedFromServerEvent.DisconnectPlayer.create(component));
-      } else if (result instanceof KickedFromServerEvent.RedirectPlayer) {
-        RegisteredServer redirectServer = ((KickedFromServerEvent.RedirectPlayer)event.getResult()).getServer();
-        event.setResult(KickedFromServerEvent.RedirectPlayer.create(redirectServer,component));
-      } else if (result instanceof KickedFromServerEvent.Notify) {
-        event.setResult(KickedFromServerEvent.Notify.create(component));
-      }
+    if (event.getServerKickReason().isPresent()) {
+      Component reason = event.getServerKickReason().get();
+      if (reason instanceof TranslatableComponent)
+        if (((TranslatableComponent) reason).key().equals("multiplayer.disconnect.unexpected_query_response")) {
+          if (getForgeServerConnection(event.getServer()).isPresent() && getForgeConnection(event.getPlayer()).isEmpty()) {
+            //Turns out the server the vanilla client is connecting to is forge. Let's handle the connection error.
+            logger.info("Vanilla player {} tried to connect to forge server {}. The connection error can be ignored.",
+                event.getPlayer(),event.getServer().getServerInfo().getName());
+            KickedFromServerEvent.ServerKickResult result = event.getResult();
+            Component component = Component.text("The server you were trying to connect to requires Forge to be installed.", NamedTextColor.RED);
+            if (result instanceof KickedFromServerEvent.DisconnectPlayer) {
+              event.setResult(KickedFromServerEvent.DisconnectPlayer.create(component));
+            } else if (result instanceof KickedFromServerEvent.RedirectPlayer) {
+              RegisteredServer redirectServer = ((KickedFromServerEvent.RedirectPlayer)event.getResult()).getServer();
+              event.setResult(KickedFromServerEvent.RedirectPlayer.create(redirectServer,component));
+            } else if (result instanceof KickedFromServerEvent.Notify) {
+              event.setResult(KickedFromServerEvent.Notify.create(component));
+            }
+          }
+        }
     }
     continuation.resume();
   }
