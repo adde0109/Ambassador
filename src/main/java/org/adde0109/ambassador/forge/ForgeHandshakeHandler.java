@@ -1,6 +1,5 @@
 package org.adde0109.ambassador.forge;
 
-import com.google.common.io.ByteArrayDataInput;
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
@@ -12,7 +11,6 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import java.io.EOFException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
