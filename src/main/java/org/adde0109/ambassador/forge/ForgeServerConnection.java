@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 public class ForgeServerConnection {
 
   private static final int PACKET_LENGTH_INDEX = 14;    //length of "fml:handshake"+1
-  private final Logger logger;
   private final RegisteredServer handshakeServer;
   private ForgeHandshakeUtils.CachedServerHandshake handshake;
 
@@ -16,9 +15,8 @@ public class ForgeServerConnection {
     return handshakeServer;
   }
 
-  public ForgeServerConnection(RegisteredServer handshakeServer, Logger logger) {
+  public ForgeServerConnection(RegisteredServer handshakeServer) {
     this.handshakeServer = handshakeServer;
-    this.logger = logger;
   }
 
   public CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> getHandshake() {

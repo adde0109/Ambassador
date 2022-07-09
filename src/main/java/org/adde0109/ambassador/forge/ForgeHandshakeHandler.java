@@ -32,7 +32,6 @@ public class ForgeHandshakeHandler {
       forgeServerConnectionMap = new HashMap<>();
   private final Map<InetSocketAddress,ForgeConnection> incomingForgeConnections = new HashMap<>();
 
-  private final List<Player> doomedConnections = new ArrayList<>();
   private static final ChannelIdentifier LOGIN_WRAPPER_ID = MinecraftChannelIdentifier.create("fml","loginwrapper");
 
 
@@ -59,7 +58,7 @@ public class ForgeHandshakeHandler {
 
           //If a connection does not already exist, create one.
           if (!forgeServerConnectionMap.containsKey(defaultServer)) {
-            forgeServerConnectionMap.put(defaultServer, new ForgeServerConnection(defaultServer,logger));
+            forgeServerConnectionMap.put(defaultServer, new ForgeServerConnection(defaultServer));
           }
 
           ForgeServerConnection forgeServerConnection = forgeServerConnectionMap.get(defaultServer);
@@ -102,7 +101,7 @@ public class ForgeHandshakeHandler {
     //Check 2
     if (getForgeServerConnection(event.getConnection().getServer()).isEmpty()) {
       registerForgeServer(event.getConnection().getServer(),
-          new ForgeServerConnection(event.getConnection().getServer(), logger));
+          new ForgeServerConnection(event.getConnection().getServer()));
     }
 
     if (incomingForgeConnections.containsKey(event.getConnection().getPlayer().getRemoteAddress())) {
