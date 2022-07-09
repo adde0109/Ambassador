@@ -65,46 +65,41 @@ public class Ambassador {
 
   @Subscribe
   public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
-    Optional<ForgeConnection> forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer());
     Optional<ForgeServerConnection> forgeServerConnectionOptional = forgeHandshakeHandler.getForgeServerConnection(event.getOriginalServer());
-    if (forgeConnection.isPresent()) {
-      ForgeServerConnection forgeServerConnection;
-      if (forgeServerConnectionOptional.isEmpty()) {
-        forgeServerConnection = new ForgeServerConnection(event.getOriginalServer(), logger);
-      } else {
-        forgeServerConnection = forgeServerConnectionOptional.get();
-      }
+    if (forgeServerConnectionOptional.isPresent()) {
+      //Check 1; Check if the server is already known to us. Check if the client is compatible.
+      ForgeServerConnection forgeServerConnection = forgeServerConnectionOptional.get();
       forgeServerConnection.getHandshake().whenComplete((msg, ex) -> {
         if (ex != null) {
+          //The server was forge but aren't right now. Or it's just offline.
           continuation.resume();
         } else {
-          if (msg.equals(forgeConnection.get().getTransmittedHandshake())) {
-            continuation.resume();
-          } else {
+          Optional<ForgeConnection> forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer());
+          if (forgeConnection.isEmpty() && (event.getPlayer().getCurrentServer().isPresent())) {
+            //If vanilla tries to connect to a server we know is forge
             event.setResult(ServerPreConnectEvent.ServerResult.denied());
-            logger.warn("Resync needed");
+            event.getPlayer().sendMessage(Component.text("This server requires Forge!", NamedTextColor.RED));
+            continuation.resume();
+          } else if (forgeConnection.isPresent()) {
+            if (msg.equals(forgeConnection.get().getTransmittedHandshake())) {
+              //The client's registry is the same as the server's
+              continuation.resume();
+            } else {
+              event.setResult(ServerPreConnectEvent.ServerResult.denied());
+              logger.warn("Resync needed");
+              continuation.resume();
+            }
+          } else {
+            //If the initial server is forge while the client is vanilla.
+            //Can't handle, just let it pass.
             continuation.resume();
           }
         }
-        //Register newly discovered forge server
-        if (forgeServerConnectionOptional.isEmpty()) {
-          forgeHandshakeHandler.registerForgeServer(event.getOriginalServer(), forgeServerConnection);
-        }
-
       });
-      //If vanilla tries to connect to forge
-    } else if (forgeServerConnectionOptional.isPresent() && (event.getPlayer().getCurrentServer().isPresent())){
-      event.setResult(ServerPreConnectEvent.ServerResult.denied());
-      event.getPlayer().sendMessage(Component.text("This server requires Forge!", NamedTextColor.RED));
-      continuation.resume();
     } else {
+      //The server is not known to us.
       continuation.resume();
     }
-  }
-
-  @Subscribe
-  public void onKickedFromServerEvent(KickedFromServerEvent event, Continuation continuation) {
-    continuation.resume();
   }
 
   @Subscribe
