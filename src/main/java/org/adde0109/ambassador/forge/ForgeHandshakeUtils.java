@@ -1,6 +1,8 @@
 package org.adde0109.ambassador.forge;
 
 import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.util.ModInfo;
@@ -28,6 +30,36 @@ public class ForgeHandshakeUtils {
     return i;
   }
 
+  public static void writeVarInt(ByteArrayDataOutput stream,int i) {
+    while((i & -128) != 0) {
+      stream.writeByte(i & 127 | 128);
+      i >>>= 7;
+    }
+
+    stream.writeByte(i);
+  }
+
+  public static void writeUtf(ByteArrayDataOutput stream,String p_211400_1_) {
+    byte[] abyte = p_211400_1_.getBytes(StandardCharsets.UTF_8);
+      writeVarInt(stream,abyte.length);
+      stream.write(abyte);
+  }
+
+  public static byte[] generateTestPacket() {
+    ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
+    writeVarInt(dataAndPacketIdStream,4);
+    writeUtf(dataAndPacketIdStream,"ambassadortestpacket");
+    writeVarInt(dataAndPacketIdStream,0);
+
+    ByteArrayDataOutput stream = ByteStreams.newDataOutput();
+    byte[] dataAndPacketId = dataAndPacketIdStream.toByteArray();
+    writeUtf(stream,"fml:handshake");
+    writeVarInt(stream,dataAndPacketId.length);
+    stream.write(dataAndPacketId);
+
+    return stream.toByteArray();
+  }
+
   public static class HandshakeReceiver {
 
     private int partLength;
@@ -45,7 +77,7 @@ public class ForgeHandshakeUtils {
 
     private HandshakeReceiver(ServerPing serverPing) throws Exception {
       if ((serverPing.getModinfo().isEmpty()) || (!Objects.equals(serverPing.getModinfo().get().getType(), "ambassador"))) {
-        throw new Exception("The specified Forge server is not running the Forge-side version of this plugin!");
+        throw new HandshakeNotAvailableException("The specified Forge server is not running the Forge-side version of this plugin!");
       }
 
       ModInfo.Mod pair = serverPing.getModinfo().orElseThrow(IllegalAccessError::new).getMods().get(0);
@@ -160,7 +192,11 @@ public class ForgeHandshakeUtils {
       return list;
     }
 
-
+    public static class HandshakeNotAvailableException extends Exception {
+      HandshakeNotAvailableException(String errorMessage) {
+        super(errorMessage);
+      }
+    }
 
   }
   public static class CachedServerHandshake {

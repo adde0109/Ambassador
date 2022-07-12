@@ -5,8 +5,10 @@ import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.io.EOFException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class ForgeConnection {
@@ -16,65 +18,59 @@ public class ForgeConnection {
   private byte[] recivedClientModlist;
   private static byte[] recivedClientACK;
 
-  private ForgeHandshakeUtils.CachedServerHandshake transmittedHandshake;
+  private Optional<ForgeHandshakeUtils.CachedServerHandshake> transmittedHandshake = Optional.empty();
+  private Optional<RegisteredServer> syncedTo = Optional.empty();
 
 
-  private ForgeConnection(LoginPhaseConnection connection) {
+  public ForgeConnection(LoginPhaseConnection connection) {
     this.connection = connection;
   }
 
+  public static CompletableFuture<Boolean> testIfForge(LoginPhaseConnection connection) {
+    CompletableFuture<Boolean> future = new CompletableFuture<>();
 
-  public static CompletableFuture<ForgeConnection> sync(LoginPhaseConnection connection,
-                                                        ForgeServerConnection forgeServerConnection,
-                                                        Continuation continuation) {
-    CompletableFuture<ForgeConnection> future = new CompletableFuture<>();
-    ForgeConnection forgeConnection = new ForgeConnection(connection);
-    forgeServerConnection.getHandshake().whenComplete((msg, ex) -> {
+    byte[] testPacket = ForgeHandshakeUtils.generateTestPacket();
+    connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml", "loginwrapper"), testPacket,
+        responseBody -> {
+          future.complete(responseBody != null);
+        });
+    return future;
+  }
+
+
+
+  public CompletableFuture<Boolean> sync(ForgeServerConnection forgeServerConnection) {
+    CompletableFuture<Boolean> future = new CompletableFuture<>();
+    forgeServerConnection.getHandshake().whenComplete((msg,ex) -> {
       if (ex != null) {
-        future.completeExceptionally(ex);
-      } else {
-        forgeConnection.sendModlist(msg.modListPacket).thenAccept((response) -> {
-          if (response != null) {
-            future.complete(forgeConnection);
-          } else {
-            future.complete(null);
-          }
-        });
-        forgeConnection.sendOther(msg.otherPackets).thenAccept((response) -> {
-          if (response != null) {
-            future.complete(forgeConnection);
-          } else {
-            future.complete(null);
-          }
-        });
-        forgeConnection.transmittedHandshake = msg;
+        future.complete(false);
       }
-      //Write
-      continuation.resume();
+        sendModlist(msg.modListPacket).thenAccept((response) -> {
+          recivedClientModlist = response;
+        });
+        sendOther(msg.otherPackets).thenAccept((response) -> {
+          ForgeConnection.recivedClientACK = response;
+          transmittedHandshake = Optional.of(msg);
+          syncedTo = Optional.of(forgeServerConnection.getServer());
+        });
+      future.complete(true);
     });
     return future;
   }
 
-  public CompletableFuture<byte[]> sendModlist(byte[] modListPacket) {
+  private CompletableFuture<byte[]> sendModlist(byte[] modListPacket) {
     CompletableFuture<byte[]> future = new CompletableFuture<>();
     connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml", "loginwrapper"), modListPacket,
-        responseBody -> {
-          recivedClientModlist = responseBody;
-          future.complete(recivedClientModlist);
-        });
+        future::complete);
     return future;
   }
 
-  CompletableFuture<byte[]> sendOther(List<byte[]> otherPackets) {
+  private CompletableFuture<byte[]> sendOther(List<byte[]> otherPackets) {
     CompletableFuture<byte[]> future = new CompletableFuture<>();
     for (int i = 0; i < otherPackets.size(); i++) {
       connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml", "loginwrapper"), otherPackets.get(i),
           (i < (otherPackets.size() - 1)) ? responseBody -> {
-          } : responseBody -> {
-            if (responseBody != null)
-              recivedClientACK = responseBody;
-            future.complete(responseBody);
-          });
+          } : future::complete);
     }
     return future;
   }
@@ -100,7 +96,7 @@ public class ForgeConnection {
     return connection;
   }
 
-  public ForgeHandshakeUtils.CachedServerHandshake getTransmittedHandshake() {
+  public Optional<ForgeHandshakeUtils.CachedServerHandshake> getTransmittedHandshake() {
     return transmittedHandshake;
   }
 

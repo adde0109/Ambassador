@@ -50,26 +50,27 @@ public class ForgeHandshakeHandler {
     }
     RegisteredServer defaultServer = config.getServer(event.getConnection().getProtocolVersion().getProtocol());
 
-          if (defaultServer == null) {
-            continuation.resume();
-            return;
-          }
+    ForgeConnection forgeConnection = new ForgeConnection((LoginPhaseConnection) event.getConnection());
+    ForgeConnection.testIfForge((LoginPhaseConnection) event.getConnection())
+        .thenAccept((isForge) -> {
+          registerForgeConnection(forgeConnection);
+        });
 
-
-
-          //If a connection does not already exist, create one.
-          if (!forgeServerConnectionMap.containsKey(defaultServer)) {
-            forgeServerConnectionMap.put(defaultServer, new ForgeServerConnection(defaultServer));
-          }
-
-          ForgeServerConnection forgeServerConnection = forgeServerConnectionMap.get(defaultServer);
-
-          //Syncing - continuation is forwarded to this method
-          ForgeConnection.sync((LoginPhaseConnection) event.getConnection(),forgeServerConnection,continuation).thenAccept(
-              this::onSyncComplete);
+    if (defaultServer != null) {
+      //If a connection does not already exist, create one.
+      if (!forgeServerConnectionMap.containsKey(defaultServer)) {
+        forgeServerConnectionMap.put(defaultServer, new ForgeServerConnection(defaultServer));
+      }
+      //Forge Handshake
+      forgeConnection.sync(forgeServerConnectionMap.get(defaultServer)).thenAccept((done) -> {
+        continuation.resume();
+      });
+    } else {
+      continuation.resume();
+    }
   }
 
-  private void onSyncComplete(ForgeConnection forgeConnection) {
+  private void registerForgeConnection(ForgeConnection forgeConnection) {
     if (forgeConnection != null) {
       incomingForgeConnections.values().removeIf((c) -> !c.getConnection().isActive());
       incomingForgeConnections.put(forgeConnection.getConnection().getRemoteAddress(), forgeConnection);
@@ -91,6 +92,9 @@ public class ForgeHandshakeHandler {
 
   public void registerForgeServer(RegisteredServer server, ForgeServerConnection forgeServerConnection) {
     forgeServerConnectionMap.put(server,forgeServerConnection);
+  }
+  public void unRegisterForgeServer(RegisteredServer server) {
+    forgeServerConnectionMap.remove(server);
   }
 
   @Subscribe

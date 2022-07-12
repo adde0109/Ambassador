@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import java.nio.file.Path;
 import java.util.*;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.1-SNAPSHOT", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.2", authors = {"adde0109"})
 public class Ambassador {
 
   private final ProxyServer server;
@@ -68,6 +68,10 @@ public class Ambassador {
       forgeServerConnection.getHandshake().whenComplete((msg, ex) -> {
         if (ex != null) {
           //The server was forge but aren't right now. Or it's just offline.
+          if (ex instanceof ForgeHandshakeUtils.HandshakeReceiver.HandshakeNotAvailableException) {
+            //It's not running ambassador so it should be unregistered.
+            forgeHandshakeHandler.unRegisterForgeServer(forgeServerConnection.getServer());
+          }
           continuation.resume();
         } else {
           Optional<ForgeConnection> forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer());
@@ -77,7 +81,8 @@ public class Ambassador {
             event.getPlayer().sendMessage(Component.text("This server requires Forge!", NamedTextColor.RED));
             continuation.resume();
           } else if (forgeConnection.isPresent()) {
-            if (msg.equals(forgeConnection.get().getTransmittedHandshake())) {
+            if (forgeConnection.get().getTransmittedHandshake().isPresent()
+                && msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
               //The client's registry is the same as the server's
               continuation.resume();
             } else {
