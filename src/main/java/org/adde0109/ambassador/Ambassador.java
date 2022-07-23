@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import java.nio.file.Path;
 import java.util.*;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.2", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.3", authors = {"adde0109"})
 public class Ambassador {
 
   private final ProxyServer server;
@@ -82,6 +82,7 @@ public class Ambassador {
             continuation.resume();
           } else if (forgeConnection.isPresent()) {
             if (forgeConnection.get().getTransmittedHandshake().isPresent()
+                    && forgeConnection.get().getRecivedClientModlist().isPresent()
                 && msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
               //The client's registry is the same as the server's
               continuation.resume();

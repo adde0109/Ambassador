@@ -77,7 +77,7 @@ public class ForgeHandshakeUtils {
 
     private HandshakeReceiver(ServerPing serverPing) throws Exception {
       if ((serverPing.getModinfo().isEmpty()) || (!Objects.equals(serverPing.getModinfo().get().getType(), "ambassador"))) {
-        throw new HandshakeNotAvailableException("The specified Forge server is not running the Forge-side version of this plugin!");
+        throw new HandshakeNotAvailableException("The specified Forge server is not running the Ambassador-Forge mod!");
       }
 
       ModInfo.Mod pair = serverPing.getModinfo().orElseThrow(IllegalAccessError::new).getMods().get(0);

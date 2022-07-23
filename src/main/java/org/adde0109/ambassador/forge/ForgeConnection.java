@@ -6,6 +6,8 @@ import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import org.slf4j.Logger;
+
 import java.io.EOFException;
 import java.util.List;
 import java.util.Optional;
@@ -13,26 +15,30 @@ import java.util.concurrent.CompletableFuture;
 
 public class ForgeConnection {
 
+  private final Logger logger;
   private final LoginPhaseConnection connection;
 
-  private byte[] recivedClientModlist;
+  private Optional<byte[]> recivedClientModlist = Optional.empty();
   private static byte[] recivedClientACK;
+  private boolean ignoreSyncExepction = false;
 
   private Optional<ForgeHandshakeUtils.CachedServerHandshake> transmittedHandshake = Optional.empty();
   private Optional<RegisteredServer> syncedTo = Optional.empty();
 
 
-  public ForgeConnection(LoginPhaseConnection connection) {
+  public ForgeConnection(LoginPhaseConnection connection, Logger logger) {
     this.connection = connection;
+    this.logger = logger;
   }
 
-  public static CompletableFuture<Boolean> testIfForge(LoginPhaseConnection connection) {
+  public CompletableFuture<Boolean> testIfForge(LoginPhaseConnection connection) {
     CompletableFuture<Boolean> future = new CompletableFuture<>();
 
     byte[] testPacket = ForgeHandshakeUtils.generateTestPacket();
     connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml", "loginwrapper"), testPacket,
         responseBody -> {
           future.complete(responseBody != null);
+          ignoreSyncExepction = responseBody == null;
         });
     return future;
   }
@@ -44,16 +50,24 @@ public class ForgeConnection {
     forgeServerConnection.getHandshake().whenComplete((msg,ex) -> {
       if (ex != null) {
         future.complete(false);
-      }
+        logger.warn("Sync Exception: " + ex);
+      } else {
         sendModlist(msg.modListPacket).thenAccept((response) -> {
-          recivedClientModlist = response;
+          if (!ignoreSyncExepction && response == null) {
+            logger.warn("Sync Exception: Client responded with an empty body.");
+          }
+          recivedClientModlist = Optional.ofNullable(response);
         });
         sendOther(msg.otherPackets).thenAccept((response) -> {
+          if (!ignoreSyncExepction && response == null) {
+            logger.warn("Sync Exception: Client responded with an empty body.");
+          }
           ForgeConnection.recivedClientACK = response;
           transmittedHandshake = Optional.of(msg);
           syncedTo = Optional.of(forgeServerConnection.getServer());
         });
-      future.complete(true);
+        future.complete(true);
+      }
     });
     return future;
   }
@@ -85,9 +99,20 @@ public class ForgeConnection {
     int packetID = ForgeHandshakeUtils.readVarInt(data);
 
     if (packetID == 1) {
-      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(getRecivedClientModlist()));
+      if (getRecivedClientModlist().isPresent()) {
+        event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(getRecivedClientModlist().get()));
+      } else {
+        continuation.resumeWithException(new Exception("Client isn't synced. This should have been caught" +
+                " during serverPreConnect"));
+        return;
+      }
     } else {
-      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(getRecivedClientACK()));
+      if (getRecivedClientACK() != null) {
+        event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(getRecivedClientACK()));
+      } else {
+        continuation.resumeWithException(new Exception("No response available."));
+        return;
+      }
     }
     continuation.resume();
 }
@@ -100,7 +125,7 @@ public class ForgeConnection {
     return transmittedHandshake;
   }
 
-  public byte[] getRecivedClientModlist() {
+  public Optional<byte[]> getRecivedClientModlist() {
     return recivedClientModlist;
   }
 

@@ -50,8 +50,8 @@ public class ForgeHandshakeHandler {
     }
     RegisteredServer defaultServer = config.getServer(event.getConnection().getProtocolVersion().getProtocol());
 
-    ForgeConnection forgeConnection = new ForgeConnection((LoginPhaseConnection) event.getConnection());
-    ForgeConnection.testIfForge((LoginPhaseConnection) event.getConnection())
+    ForgeConnection forgeConnection = new ForgeConnection((LoginPhaseConnection) event.getConnection(), logger);
+    forgeConnection.testIfForge((LoginPhaseConnection) event.getConnection())
         .thenAccept((isForge) -> {
           registerForgeConnection(forgeConnection);
         });
@@ -113,6 +113,8 @@ public class ForgeHandshakeHandler {
       incomingForgeConnections.get(event.getConnection().getPlayer().getRemoteAddress())
           .handleServerHandshakePacket(event,continuation);
     } else {
+      //This will lead to "multiplayer.disconnect.unexpected_query_response"
+      //and will be handled during KickFromServerEvent.
         continuation.resume();
     }
   }
