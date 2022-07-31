@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 
 public class ForgeHandshakeHandler {
 
-  private final AmbassadorConfig config;
+  private AmbassadorConfig config;
   private final ProxyServer server;
   private final Logger logger;
 
@@ -95,6 +95,10 @@ public class ForgeHandshakeHandler {
   }
   public void unRegisterForgeServer(RegisteredServer server) {
     forgeServerConnectionMap.remove(server);
+  }
+
+  public void setConfig(AmbassadorConfig config) {
+    this.config = config;
   }
 
   @Subscribe

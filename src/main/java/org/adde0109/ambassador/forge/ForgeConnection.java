@@ -35,6 +35,7 @@ public class ForgeConnection {
     CompletableFuture<Boolean> future = new CompletableFuture<>();
 
     byte[] testPacket = ForgeHandshakeUtils.generateTestPacket();
+    //This gets also sent to vanilla
     connection.sendLoginPluginMessage(MinecraftChannelIdentifier.create("fml", "loginwrapper"), testPacket,
         responseBody -> {
           future.complete(responseBody != null);
@@ -52,17 +53,20 @@ public class ForgeConnection {
         future.complete(false);
         logger.warn("Sync Exception: " + ex);
       } else {
+        //This gets also sent to vanilla
         sendModlist(msg.modListPacket).thenAccept((response) -> {
           if (!ignoreSyncExepction && response == null) {
             logger.warn("Sync Exception: Client responded with an empty body.");
           }
           recivedClientModlist = Optional.ofNullable(response);
         });
+        //This gets also sent to vanilla
         sendOther(msg.otherPackets).thenAccept((response) -> {
           if (!ignoreSyncExepction && response == null) {
             logger.warn("Sync Exception: Client responded with an empty body.");
           }
-          ForgeConnection.recivedClientACK = response;
+          //TODO: Generate the ACK packet ourself.
+          ForgeConnection.recivedClientACK = (response == null) ? ForgeConnection.recivedClientACK : response;
           transmittedHandshake = Optional.of(msg);
           syncedTo = Optional.of(forgeServerConnection.getServer());
         });

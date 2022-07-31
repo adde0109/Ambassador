@@ -6,6 +6,7 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyReloadEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -22,7 +23,7 @@ import org.slf4j.Logger;
 import java.nio.file.Path;
 import java.util.*;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "0.2.3", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "0.3.0", authors = {"adde0109"})
 public class Ambassador {
 
   private final ProxyServer server;
@@ -60,6 +61,18 @@ public class Ambassador {
   }
 
   @Subscribe
+  public void onProxyReloadEvent(ProxyReloadEvent event) {
+    AmbassadorConfig c = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
+    if (config != null) {
+      config = c;
+      forgeHandshakeHandler.setConfig(config);
+      logger.info("Successfully reloaded the config");
+    } else {
+      logger.warn("Using the old config");
+    }
+  }
+
+  @Subscribe
   public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
     Optional<ForgeServerConnection> forgeServerConnectionOptional = forgeHandshakeHandler.getForgeServerConnection(event.getOriginalServer());
     if (forgeServerConnectionOptional.isPresent()) {
@@ -88,7 +101,8 @@ public class Ambassador {
               continuation.resume();
             } else {
               event.setResult(ServerPreConnectEvent.ServerResult.denied());
-              logger.warn("Resync needed");
+              logger.info("Kicking {} because of re-sync needed", event.getPlayer());
+              event.getPlayer().disconnect(Component.text("Please reconnect"));
               continuation.resume();
             }
           } else {
