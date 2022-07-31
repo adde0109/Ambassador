@@ -11,6 +11,7 @@ import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 
+import com.velocitypowered.api.util.GameProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.forge.ForgeConnection;
@@ -23,7 +24,7 @@ import org.slf4j.Logger;
 import java.nio.file.Path;
 import java.util.*;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "0.3.1", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "0.3.2", authors = {"adde0109"})
 public class Ambassador {
 
   private final ProxyServer server;
@@ -94,6 +95,12 @@ public class Ambassador {
             event.getPlayer().sendMessage(Component.text("This server requires Forge!", NamedTextColor.RED));
             continuation.resume();
           } else if (forgeConnection.isPresent()) {
+
+            //To make legacy forwarding work
+            List<GameProfile.Property> properties = new ArrayList<>(event.getPlayer().getGameProfileProperties());
+            properties.add(new GameProfile.Property("extraData", "\1FML2\1",""));
+            event.getPlayer().setGameProfileProperties(properties);
+
             if (forgeConnection.get().getTransmittedHandshake().isPresent()
                     && forgeConnection.get().getRecivedClientModlist().isPresent()
                 && msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
