@@ -53,7 +53,8 @@ public class ForgeHandshakeHandler {
     ForgeConnection forgeConnection = new ForgeConnection((LoginPhaseConnection) event.getConnection(), logger);
     forgeConnection.testIfForge((LoginPhaseConnection) event.getConnection())
         .thenAccept((isForge) -> {
-          registerForgeConnection(forgeConnection);
+          if (isForge)
+            registerForgeConnection(forgeConnection);
         });
 
     if (defaultServer != null) {
