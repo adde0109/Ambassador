@@ -8,22 +8,17 @@ import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.Ambassador;
-import org.adde0109.ambassador.AmbassadorConfig;
-import org.slf4j.Logger;
 
 public class ForgeHandshakeHandler {
 
@@ -126,11 +121,16 @@ public class ForgeHandshakeHandler {
 
   @Subscribe
   public void onKickedFromServerEvent(KickedFromServerEvent event, Continuation continuation) {
-    if (event.getServerKickReason().isPresent()) {
+    Optional<ForgeConnection> forgeConnectionOptional = getForgeConnection(event.getPlayer());
+    if (forgeConnectionOptional.isPresent()) {
+      if (forgeConnectionOptional.get().isForced() && event.getResult() instanceof KickedFromServerEvent.RedirectPlayer) {
+        event.setResult(KickedFromServerEvent.DisconnectPlayer.create(event.getServerKickReason().get()));
+      }
+    } else if (event.getServerKickReason().isPresent()) {
       Component reason = event.getServerKickReason().get();
       if (reason instanceof TranslatableComponent)
         if (((TranslatableComponent) reason).key().equals("multiplayer.disconnect.unexpected_query_response")) {
-          if (getForgeServerConnection(event.getServer()).isPresent() && getForgeConnection(event.getPlayer()).isEmpty()) {
+          if (getForgeServerConnection(event.getServer()).isPresent()) {
             //Turns out the server the vanilla client is connecting to is forge. Let's handle the connection error.
             ambassador.logger.info("Vanilla player {} tried to connect to forge server {}. The connection error can be ignored.",
                 event.getPlayer(),event.getServer().getServerInfo().getName());
