@@ -3,7 +3,6 @@ package org.adde0109.ambassador.forge;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import java.util.concurrent.CompletableFuture;
-import org.slf4j.Logger;
 
 public class ForgeServerConnection {
 
