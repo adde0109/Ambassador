@@ -83,9 +83,10 @@ public class Ambassador {
     if((event.getInitialServer().isPresent()) && (forgeHandshakeHandler.getForgeConnection(event.getPlayer()).isPresent())) {
       //Forge client
       ForgeConnection forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer()).get();
-      if (config.getForced(forgeConnection.getConnection().getProtocolVersion().getProtocol())) {
-        event.setInitialServer(config.getServer(forgeConnection.getConnection().getProtocolVersion().getProtocol()));
+      if (forgeConnection.isForced()) {
+        event.setInitialServer(forgeConnection.getSyncedServer().get());
       }
+      forgeConnection.setForced(config.getForced(forgeConnection.getConnection().getProtocolVersion().getProtocol()));
     }
     continuation.resume();
   }

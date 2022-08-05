@@ -23,6 +23,7 @@ public class ForgeConnection {
   private boolean ignoreSyncExepction = false;
 
   private Optional<ForgeHandshakeUtils.CachedServerHandshake> transmittedHandshake = Optional.empty();
+  private boolean forced = false;
   private Optional<RegisteredServer> syncedTo = Optional.empty();
 
 
@@ -135,5 +136,14 @@ public class ForgeConnection {
 
   public static byte[] getRecivedClientACK() {
     return recivedClientACK;
+  }
+  public Optional<RegisteredServer> getSyncedServer() {
+    return syncedTo;
+  }
+  public void setForced(boolean forced) {
+    this.forced = forced;
+  }
+  public boolean isForced() {
+    return forced;
   }
 }
