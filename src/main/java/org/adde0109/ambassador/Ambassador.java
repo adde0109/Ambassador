@@ -18,6 +18,7 @@ import org.adde0109.ambassador.forge.ForgeConnection;
 import org.adde0109.ambassador.forge.ForgeHandshakeHandler;
 import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.forge.ForgeServerConnection;
+import org.adde0109.ambassador.forge.ForgeServerSwitchHandler;
 import org.bstats.velocity.Metrics;
 import org.slf4j.Logger;
 
@@ -27,13 +28,14 @@ import java.util.*;
 @Plugin(id = "ambassador", name = "Ambassador", version = "0.3.2", authors = {"adde0109"})
 public class Ambassador {
 
-  private final ProxyServer server;
-  private final Logger logger;
+  public ProxyServer server;
+  public final Logger logger;
+  public AmbassadorConfig config;
   private final Metrics.Factory metricsFactory;
   private final Path dataDirectory;
-  private AmbassadorConfig config;
 
-  private ForgeHandshakeHandler forgeHandshakeHandler;
+  public ForgeHandshakeHandler forgeHandshakeHandler;
+  public ForgeServerSwitchHandler forgeServerSwitchHandler;
 
 
 
@@ -51,8 +53,10 @@ public class Ambassador {
 
     config = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
     if(config != null) {
-      forgeHandshakeHandler = new ForgeHandshakeHandler(config, server, logger);
+      forgeHandshakeHandler = new ForgeHandshakeHandler(this);
+      forgeServerSwitchHandler = new ForgeServerSwitchHandler(this);
       server.getEventManager().register(this, forgeHandshakeHandler);
+      server.getEventManager().register(this,forgeServerSwitchHandler);
     }
     else {
       logger.warn("Ambassador will be disabled because of errors");
@@ -66,64 +70,12 @@ public class Ambassador {
     AmbassadorConfig c = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
     if (config != null) {
       config = c;
-      forgeHandshakeHandler.setConfig(config);
       logger.info("Successfully reloaded the config");
     } else {
       logger.warn("Using the old config");
     }
   }
 
-  @Subscribe
-  public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
-    Optional<ForgeServerConnection> forgeServerConnectionOptional = forgeHandshakeHandler.getForgeServerConnection(event.getOriginalServer());
-    if (forgeServerConnectionOptional.isPresent()) {
-      //Check 1; Check if the server is already known to us. Check if the client is compatible.
-      ForgeServerConnection forgeServerConnection = forgeServerConnectionOptional.get();
-      forgeServerConnection.getHandshake().whenComplete((msg, ex) -> {
-        if (ex != null) {
-          //The server was forge but aren't right now. Or it's just offline.
-          if (ex instanceof ForgeHandshakeUtils.HandshakeReceiver.HandshakeNotAvailableException) {
-            //It's not running ambassador so it should be unregistered.
-            forgeHandshakeHandler.unRegisterForgeServer(forgeServerConnection.getServer());
-          }
-          continuation.resume();
-        } else {
-          Optional<ForgeConnection> forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer());
-          if (forgeConnection.isEmpty() && (event.getPlayer().getCurrentServer().isPresent())) {
-            //If vanilla tries to connect to a server we know is forge
-            event.setResult(ServerPreConnectEvent.ServerResult.denied());
-            event.getPlayer().sendMessage(Component.text("This server requires Forge!", NamedTextColor.RED));
-            continuation.resume();
-          } else if (forgeConnection.isPresent()) {
-
-            //To make legacy forwarding work
-            List<GameProfile.Property> properties = new ArrayList<>(event.getPlayer().getGameProfileProperties());
-            properties.add(new GameProfile.Property("extraData", "\1FML2\1",""));
-            event.getPlayer().setGameProfileProperties(properties);
-
-            if (forgeConnection.get().getTransmittedHandshake().isPresent()
-                    && forgeConnection.get().getRecivedClientModlist().isPresent()
-                && msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
-              //The client's registry is the same as the server's
-              continuation.resume();
-            } else {
-              event.setResult(ServerPreConnectEvent.ServerResult.denied());
-              logger.info("Kicking {} because of re-sync needed", event.getPlayer());
-              event.getPlayer().disconnect(Component.text("Please reconnect"));
-              continuation.resume();
-            }
-          } else {
-            //If the initial server is forge while the client is vanilla.
-            //Can't handle, just let it pass.
-            continuation.resume();
-          }
-        }
-      });
-    } else {
-      //The server is not known to us.
-      continuation.resume();
-    }
-  }
 
   @Subscribe
   public void onPlayerChooseInitialServerEvent(PlayerChooseInitialServerEvent event, Continuation continuation) {

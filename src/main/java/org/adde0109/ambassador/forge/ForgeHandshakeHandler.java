@@ -1,6 +1,7 @@
 package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.api.event.Continuation;
+import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
@@ -20,14 +21,13 @@ import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.AmbassadorConfig;
 import org.slf4j.Logger;
 
 public class ForgeHandshakeHandler {
 
-  private AmbassadorConfig config;
-  private final ProxyServer server;
-  private final Logger logger;
+  private final Ambassador ambassador;
 
   private final Map<RegisteredServer, ForgeServerConnection>
       forgeServerConnectionMap = new HashMap<>();
@@ -36,21 +36,19 @@ public class ForgeHandshakeHandler {
   private static final ChannelIdentifier LOGIN_WRAPPER_ID = MinecraftChannelIdentifier.create("fml","loginwrapper");
 
 
-  public ForgeHandshakeHandler(AmbassadorConfig config, ProxyServer server, Logger logger) {
-    this.config = config;
-    this.server = server;
-    this.logger = logger;
+  public ForgeHandshakeHandler(Ambassador ambassador) {
+    this.ambassador = ambassador;
   }
 
-  @Subscribe
+  @Subscribe(order = PostOrder.LAST)
   public void onPreLoginEvent(PreLoginEvent event, Continuation continuation) {
-    if (!config.shouldHandle(event.getConnection().getProtocolVersion().getProtocol())) {
+    if (!ambassador.config.shouldHandle(event.getConnection().getProtocolVersion().getProtocol()) || !event.getResult().isAllowed()) {
       continuation.resume();
       return;
     }
-    RegisteredServer defaultServer = config.getServer(event.getConnection().getProtocolVersion().getProtocol());
+    RegisteredServer defaultServer = ambassador.config.getServer(event.getConnection().getProtocolVersion().getProtocol());
 
-    ForgeConnection forgeConnection = new ForgeConnection((LoginPhaseConnection) event.getConnection(), logger);
+    ForgeConnection forgeConnection = new ForgeConnection((LoginPhaseConnection) event.getConnection(), ambassador.logger);
     forgeConnection.testIfForge((LoginPhaseConnection) event.getConnection())
         .thenAccept((isForge) -> {
           if (isForge)
@@ -98,10 +96,6 @@ public class ForgeHandshakeHandler {
     forgeServerConnectionMap.remove(server);
   }
 
-  public void setConfig(AmbassadorConfig config) {
-    this.config = config;
-  }
-
   @Subscribe
   public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
     if (!event.getIdentifier().equals(LOGIN_WRAPPER_ID)) {
@@ -132,7 +126,7 @@ public class ForgeHandshakeHandler {
         if (((TranslatableComponent) reason).key().equals("multiplayer.disconnect.unexpected_query_response")) {
           if (getForgeServerConnection(event.getServer()).isPresent() && getForgeConnection(event.getPlayer()).isEmpty()) {
             //Turns out the server the vanilla client is connecting to is forge. Let's handle the connection error.
-            logger.info("Vanilla player {} tried to connect to forge server {}. The connection error can be ignored.",
+            ambassador.logger.info("Vanilla player {} tried to connect to forge server {}. The connection error can be ignored.",
                 event.getPlayer(),event.getServer().getServerInfo().getName());
             KickedFromServerEvent.ServerKickResult result = event.getResult();
             Component component = Component.text("The server you were trying to connect to requires Forge to be installed.", NamedTextColor.RED);
