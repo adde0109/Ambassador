@@ -18,10 +18,11 @@ import java.util.Objects;
 
 public class AmbassadorConfig {
 
-
+  private static final int CONFIG_VERSION = 1;
   private final ProxyServer server;
   private final Logger logger;
-  private Differentiators settings;
+  private Differentiators differentiatorsSettings;
+  private ReSync reSyncSettings;
 
 
   private AmbassadorConfig(ProxyServer server,Logger logger) {
@@ -32,17 +33,28 @@ public class AmbassadorConfig {
 
 
   public RegisteredServer getServer(int protocolVersion) {
-    return settings.differentiators.get(protocolVersion).handshakeServer;
+    return differentiatorsSettings.differentiators.get(protocolVersion).handshakeServer;
   }
 
   public boolean getForced (int protocolVersion) {
-    return settings.differentiators.get(protocolVersion).forced;
+    return differentiatorsSettings.differentiators.get(protocolVersion).forced;
   }
 
   public boolean shouldHandle(int protocolVersion) {
-    return settings.differentiators.containsKey(protocolVersion);
+    return differentiatorsSettings.differentiators.containsKey(protocolVersion);
   }
 
+  public int getReSyncTimeout() {
+    return reSyncSettings.reSyncTimeout;
+  }
+
+  public reSyncOption reSyncOptionForge() {
+    return reSyncSettings.reSyncForgeForge;
+  }
+
+  public reSyncOption reSyncOptionVanilla() {
+    return reSyncSettings.reSyncForgeVanilla;
+  }
 
 
   public static AmbassadorConfig readOrCreateConfig(Path dataDirectory,ProxyServer server, Logger logger) {
@@ -68,10 +80,15 @@ public class AmbassadorConfig {
               .build();
       config.load();
 
-      CommentedConfig settingsConfig = config.get("Differentiators");
+      if (config.getOrElse("config-version",0) != CONFIG_VERSION) {
+        throw new Exception("Incompatible config-version detected! Please delete 'ambassador.toml' and reload.");
+      }
+      CommentedConfig differentiatorsSettingsConfig = config.get("Differentiators");
+      CommentedConfig reSyncSettingsConfig = config.get("ReSync");
 
 
-      ambassadorConfig.settings = ambassadorConfig.new Differentiators(settingsConfig);
+      ambassadorConfig.differentiatorsSettings = ambassadorConfig.new Differentiators(differentiatorsSettingsConfig);
+      ambassadorConfig.reSyncSettings = ambassadorConfig.new ReSync(reSyncSettingsConfig);
 
 
       config.save();
@@ -81,6 +98,28 @@ public class AmbassadorConfig {
       logger.error("Config related error: " + e);
       return null;
     }
+  }
+
+  private class ReSync {
+    private int reSyncTimeout = 30;
+    private reSyncOption reSyncForgeForge = reSyncOption.ALWAYS;
+    private reSyncOption reSyncForgeVanilla = reSyncOption.NEVER;
+
+    private ReSync(CommentedConfig config) {
+      if (config != null) {
+        reSyncTimeout = config.getOrElse("resync-timeout",reSyncTimeout);
+        reSyncForgeForge = reSyncOption.valueOf(
+            config.getOrElse("resync-forge-to-forge",reSyncForgeForge.name()).toUpperCase());
+      }
+        reSyncForgeVanilla = reSyncOption.valueOf(
+            config.getOrElse("unsync-forge-to-vanilla",reSyncForgeVanilla.name()).toUpperCase());
+    }
+  }
+
+  public enum reSyncOption {
+    NEVER,
+    ASK,
+    ALWAYS
   }
 
   private class Differentiators {
@@ -113,7 +152,7 @@ public class AmbassadorConfig {
 
     private DifferentiatorSettings(CommentedConfig config) throws Exception {
       if (config != null) {
-        String serverName = config.getOrElse("forge-server", "");
+        String serverName = config.getOrElse("default-forge-server", "");
         if (!Objects.equals(serverName, ""))
           handshakeServer = server.getServer(serverName)
                 .orElseThrow(() -> new Exception(serverName + "is not a registered server!"));

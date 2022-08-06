@@ -4,6 +4,7 @@ import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.util.GameProfile;
 
 import java.util.*;
@@ -13,17 +14,16 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.Ambassador;
 
+import org.adde0109.ambassador.AmbassadorConfig;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 
 public class ForgeServerSwitchHandler {
-
-  private static final int RESYNC_EXPIRY_TIME = 20;
   private final Ambassador ambassador;
   public final PassiveExpiringMap<String,ForgeServerConnection> reSyncMap;
 
   public ForgeServerSwitchHandler(Ambassador ambassador) {
     this.ambassador = ambassador;
-    this.reSyncMap = new PassiveExpiringMap<>(RESYNC_EXPIRY_TIME,TimeUnit.SECONDS);
+    this.reSyncMap = new PassiveExpiringMap<>(ambassador.config.getReSyncTimeout(),TimeUnit.SECONDS);
   }
 
 
@@ -55,11 +55,11 @@ public class ForgeServerSwitchHandler {
           properties.add(new GameProfile.Property("extraData", "\1FML2\1",""));
           event.getPlayer().setGameProfileProperties(properties);
 
-          if (!msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
-            event.setResult(ServerPreConnectEvent.ServerResult.denied());
-            ambassador.logger.info("Kicking {} because of re-sync needed", event.getPlayer());
-            event.getPlayer().disconnect(Component.text("Please reconnect"));
-            reSyncMap.put(event.getPlayer().getUsername(),forgeServerConnection);
+          if (ambassador.config.reSyncOptionForge() != AmbassadorConfig.reSyncOption.NEVER) {
+            if (forgeConnection.get().getTransmittedHandshake().isEmpty() || !msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
+              event.setResult(ServerPreConnectEvent.ServerResult.denied());
+              reSync(event.getPlayer(),forgeServerConnection);
+            }
           }
         }
         continuation.resume();
@@ -73,5 +73,10 @@ public class ForgeServerSwitchHandler {
       //The server is not known to us.
       continuation.resume();
     }
+  }
+  private void reSync(Player player, ForgeServerConnection forgeServerConnection) {
+    ambassador.logger.info("Kicking {} because of re-sync needed", player);
+    player.disconnect(Component.text("Please reconnect"));
+    reSyncMap.put(player.getUsername(),forgeServerConnection);
   }
 }
