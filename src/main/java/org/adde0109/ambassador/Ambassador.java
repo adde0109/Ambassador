@@ -10,10 +10,13 @@ import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 
+import java.util.concurrent.Callable;
 import org.adde0109.ambassador.forge.ForgeConnection;
 import org.adde0109.ambassador.forge.ForgeHandshakeHandler;
 import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.forge.ForgeServerSwitchHandler;
+import org.bstats.MetricsBase;
+import org.bstats.charts.SingleLineChart;
 import org.bstats.velocity.Metrics;
 import org.slf4j.Logger;
 
@@ -44,7 +47,7 @@ public class Ambassador {
 
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
-    metricsFactory.make(this, 15655);
+    initMetrics();
 
     config = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
     if(config != null) {
@@ -84,5 +87,15 @@ public class Ambassador {
       forgeConnection.setForced(config.getForced(forgeConnection.getConnection().getProtocolVersion().getProtocol()));
     }
     continuation.resume();
+  }
+
+  private void initMetrics() {
+    Metrics metrics = metricsFactory.make(this, 15655);
+    metrics.addCustomChart(new SingleLineChart("modern_forge_players", new Callable<Integer>() {
+      @Override
+      public Integer call() throws Exception {
+        return (forgeHandshakeHandler != null) ? forgeHandshakeHandler.getAmountOfForgeConnections() : 0;
+      }
+    }));
   }
 }
