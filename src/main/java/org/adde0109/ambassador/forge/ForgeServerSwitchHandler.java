@@ -7,6 +7,10 @@ import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.util.GameProfile;
 
+import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.protocol.StateRegistry;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -58,7 +62,11 @@ public class ForgeServerSwitchHandler {
           if (ambassador.config.reSyncOptionForge() != AmbassadorConfig.reSyncOption.NEVER) {
             if (forgeConnection.get().getTransmittedHandshake().isEmpty() || !msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
               event.setResult(ServerPreConnectEvent.ServerResult.denied());
-              reSync(event.getPlayer(),forgeServerConnection);
+              try {
+                reSync(event.getPlayer(),forgeServerConnection);
+              } catch (ReflectiveOperationException e) {
+                continuation.resumeWithException(e);
+              }
             }
           }
         }
@@ -74,7 +82,7 @@ public class ForgeServerSwitchHandler {
       continuation.resume();
     }
   }
-  private void reSync(Player player, ForgeServerConnection forgeServerConnection) {
+  private void reSync(Player player, ForgeServerConnection forgeServerConnection) throws ReflectiveOperationException {
     ambassador.logger.info("Kicking {} because of re-sync needed", player);
     player.disconnect(Component.text("Please reconnect"));
     reSyncMap.put(player.getUsername(),forgeServerConnection);
