@@ -7,6 +7,8 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.util.ModInfo;
 import java.util.*;
+
+import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
@@ -58,6 +60,12 @@ public class ForgeHandshakeUtils {
     stream.write(dataAndPacketId);
 
     return stream.toByteArray();
+  }
+
+  public static byte[] generateResetPacket() {
+    ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
+    writeVarInt(dataAndPacketIdStream,98);
+    return dataAndPacketIdStream.toByteArray();
   }
 
   public static class HandshakeReceiver {
