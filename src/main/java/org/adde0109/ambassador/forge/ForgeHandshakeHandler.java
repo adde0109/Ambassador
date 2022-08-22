@@ -52,9 +52,7 @@ public class ForgeHandshakeHandler {
         });
 
     if (ambassador.forgeServerSwitchHandler.reSyncMap.containsKey(event.getUsername())) {
-      forgeConnection.sync(ambassador.forgeServerSwitchHandler.reSyncMap.remove(event.getUsername())).thenAccept((done) -> {
-        continuation.resume();
-      });
+      forgeConnection.startSync(ambassador.forgeServerSwitchHandler.reSyncMap.remove(event.getUsername()),continuation);
       forgeConnection.setForced(true);
     } else if (defaultServer != null) {
       //If a connection does not already exist, create one.
@@ -62,9 +60,7 @@ public class ForgeHandshakeHandler {
         forgeServerConnectionMap.put(defaultServer, new ForgeServerConnection(defaultServer));
       }
       //Forge Handshake
-      forgeConnection.sync(forgeServerConnectionMap.get(defaultServer)).thenAccept((done) -> {
-        continuation.resume();
-      });
+      forgeConnection.startSync(forgeServerConnectionMap.get(defaultServer),continuation);
       forgeConnection.setForced(ambassador.config.getForced(forgeConnection.getConnection().getProtocolVersion().getProtocol()));
     } else {
       continuation.resume();

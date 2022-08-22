@@ -18,13 +18,11 @@ public class ForgeConnection {
   private final Logger logger;
   private final LoginPhaseConnection connection;
 
-  private Optional<byte[]> recivedClientModlist = Optional.empty();
-  private static byte[] recivedClientACK;
   private boolean ignoreSyncExepction = false;
 
-  private Optional<ForgeHandshakeUtils.CachedServerHandshake> transmittedHandshake = Optional.empty();
   private boolean forced = false;
-  private Optional<RegisteredServer> syncedTo = Optional.empty();
+
+  private SyncResult syncResult;
 
 
   public ForgeConnection(LoginPhaseConnection connection, Logger logger) {
@@ -47,34 +45,35 @@ public class ForgeConnection {
 
 
 
-  public CompletableFuture<Boolean> sync(ForgeServerConnection forgeServerConnection) {
-    CompletableFuture<Boolean> future = new CompletableFuture<>();
+  public void startSync(ForgeServerConnection forgeServerConnection, Continuation continuation) {
     forgeServerConnection.getHandshake().whenComplete((msg,ex) -> {
       if (ex != null) {
-        future.complete(false);
+        continuation.resume();
         logger.warn("Sync Exception: " + ex);
       } else {
+        CompletableFuture<byte[]> clientModListFuture = new CompletableFuture<>();
         //This gets also sent to vanilla
         sendModlist(msg.modListPacket).thenAccept((response) -> {
           if (!ignoreSyncExepction && response == null) {
             logger.warn("Sync Exception: Client responded with an empty body.");
           }
-          recivedClientModlist = Optional.ofNullable(response);
+          clientModListFuture.complete(response);
         });
+        syncResult = new SyncResult(msg,clientModListFuture, forgeServerConnection.getServer());
         //This gets also sent to vanilla
         sendOther(msg.otherPackets).thenAccept((response) -> {
           if (!ignoreSyncExepction && response == null) {
             logger.warn("Sync Exception: Client responded with an empty body.");
           }
           //TODO: Generate the ACK packet ourself.
-          ForgeConnection.recivedClientACK = (response == null) ? ForgeConnection.recivedClientACK : response;
-          transmittedHandshake = Optional.of(msg);
-          syncedTo = Optional.of(forgeServerConnection.getServer());
+          if (response != null && SyncResult.recivedClientACK == null) {
+            SyncResult.recivedClientACK = response;
+          }
+          syncResult.complete(syncResult);
         });
-        future.complete(true);
+        continuation.resume();
       }
     });
-    return future;
   }
 
   private CompletableFuture<byte[]> sendModlist(byte[] modListPacket) {
@@ -95,6 +94,11 @@ public class ForgeConnection {
   }
 
   public void handleServerHandshakePacket(ServerLoginPluginMessageEvent event, Continuation continuation) {
+    if (getSyncResult().isEmpty()) {
+      continuation.resumeWithException(new Exception("Client isn't synced. This should have been caught" +
+              " during serverPreConnect"));
+      return;
+    }
     ByteArrayDataInput data = event.contentsAsDataStream();
     if (data.skipBytes(14) != 14) {  //Channel Identifier
       continuation.resumeWithException(new EOFException());
@@ -104,46 +108,56 @@ public class ForgeConnection {
     int packetID = ForgeHandshakeUtils.readVarInt(data);
 
     if (packetID == 1) {
-      if (getRecivedClientModlist().isPresent()) {
-        event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(getRecivedClientModlist().get()));
-      } else {
-        continuation.resumeWithException(new Exception("Client isn't synced. This should have been caught" +
-                " during serverPreConnect"));
-        return;
-      }
+      getSyncResult().get().getRecivedClientModlist().whenComplete((msg,ex) -> {
+        event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(msg));
+        continuation.resume();
+      });
     } else {
-      if (getRecivedClientACK() != null) {
-        event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(getRecivedClientACK()));
+      if (SyncResult.recivedClientACK != null) {
+        event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(SyncResult.recivedClientACK));
       } else {
-        continuation.resumeWithException(new Exception("No response available."));
+        continuation.resumeWithException(new Exception("No ACK response packet available."));
         return;
       }
+      continuation.resume();
     }
-    continuation.resume();
 }
 
   public LoginPhaseConnection getConnection() {
     return connection;
   }
 
-  public Optional<ForgeHandshakeUtils.CachedServerHandshake> getTransmittedHandshake() {
-    return transmittedHandshake;
-  }
-
-  public Optional<byte[]> getRecivedClientModlist() {
-    return recivedClientModlist;
-  }
-
-  public static byte[] getRecivedClientACK() {
-    return recivedClientACK;
-  }
-  public Optional<RegisteredServer> getSyncedServer() {
-    return syncedTo;
+  public Optional<SyncResult> getSyncResult() {
+    return Optional.ofNullable(syncResult);
   }
   public void setForced(boolean forced) {
     this.forced = forced;
   }
   public boolean isForced() {
     return forced;
+  }
+  public static class SyncResult extends CompletableFuture<SyncResult> {
+    private final ForgeHandshakeUtils.CachedServerHandshake transmittedHandshake;
+    private final CompletableFuture<byte[]> recivedClientModlist;
+    private static byte[] recivedClientACK;
+    private final RegisteredServer syncedTo;
+
+    SyncResult(ForgeHandshakeUtils.CachedServerHandshake transmittedHandshake, CompletableFuture<byte[]> recivedClientModlist, RegisteredServer syncedTo) {
+      this.transmittedHandshake = transmittedHandshake;
+      this.recivedClientModlist = recivedClientModlist;
+      this.syncedTo = syncedTo;
+    }
+
+    public ForgeHandshakeUtils.CachedServerHandshake getTransmittedHandshake() {
+      return transmittedHandshake;
+    }
+
+    public CompletableFuture<byte[]> getRecivedClientModlist() {
+      return recivedClientModlist;
+    }
+
+    public RegisteredServer getSyncedServer() {
+      return syncedTo;
+    }
   }
 }
