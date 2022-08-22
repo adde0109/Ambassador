@@ -34,9 +34,8 @@ public class ForgeServerSwitchHandler {
       return;
     }
     Optional<ForgeServerConnection> forgeServerConnectionOptional = ambassador.forgeHandshakeHandler.getForgeServerConnection(event.getOriginalServer());
-    Optional<ForgeConnection> forgeConnectionOptional = ambassador.forgeHandshakeHandler.getForgeConnection(event.getPlayer());
-    if (forgeConnectionOptional.isPresent()) {
-      ForgeConnection forgeConnection = forgeConnectionOptional.get();
+    Optional<ForgeConnection> forgeConnection = ambassador.forgeHandshakeHandler.getForgeConnection(event.getPlayer());
+    if (forgeConnection.isPresent()) {
       ForgeServerConnection forgeServerConnection = forgeServerConnectionOptional.orElseGet(() -> new ForgeServerConnection(event.getOriginalServer()));
       forgeServerConnection.getHandshake().whenComplete((msg, ex) -> {
         if (ex != null) {
@@ -57,7 +56,7 @@ public class ForgeServerSwitchHandler {
           event.getPlayer().setGameProfileProperties(properties);
 
           if (ambassador.config.reSyncOptionForge() != AmbassadorConfig.reSyncOption.NEVER) {
-            if (forgeConnection.getSyncResult().isEmpty() || !msg.equals(forgeConnection.getSyncResult().get().getTransmittedHandshake())) {
+            if (forgeConnection.get().getTransmittedHandshake().isEmpty() || !msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
               event.setResult(ServerPreConnectEvent.ServerResult.denied());
               reSync(event.getPlayer(),forgeServerConnection);
             }
