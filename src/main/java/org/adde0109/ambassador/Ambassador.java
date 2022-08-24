@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import java.nio.file.Path;
 import java.util.*;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "0.4.0", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "0.4.0-reset", authors = {"adde0109"})
 public class Ambassador {
 
   public ProxyServer server;

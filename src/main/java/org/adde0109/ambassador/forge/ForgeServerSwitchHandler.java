@@ -140,7 +140,7 @@ public class ForgeServerSwitchHandler {
   private class ReSyncHandler implements MinecraftSessionHandler {
 
 
-    private final Player player;
+    private final ConnectedPlayer player;
 
     private final MinecraftConnection connection;
     private final Future<ForgeHandshakeUtils.CachedServerHandshake> handshakeFuture;
@@ -159,7 +159,7 @@ public class ForgeServerSwitchHandler {
 
     @Override
     public boolean handle(LoginPluginResponse packet) {
-      if (!inTransit.removeIf((s) -> s==packet.getId())) {
+      if (!inTransit.removeIf((s) -> s == packet.getId())) {
         if (packet.getId() == 98) {
           ForgeHandshakeUtils.CachedServerHandshake handshake;
           try {
@@ -188,6 +188,7 @@ public class ForgeServerSwitchHandler {
       }
       connection.flush();
     }
+
     private void complete() {
       VelocityConfiguration configuration = (VelocityConfiguration) ambassador.server.getConfiguration();
       UUID playerUniqueId = player.getUniqueId();
@@ -201,6 +202,16 @@ public class ForgeServerSwitchHandler {
       connection.setState(StateRegistry.PLAY);
       connection.setSessionHandler(originalHandler);
       continuation.resume();
+    }
+
+    @Override
+    public void handleUnknown(ByteBuf buf) {
+      originalHandler.handleUnknown(buf);
+    }
+
+    @Override
+    public void disconnected() {
+      originalHandler.disconnected();
     }
   }
 }

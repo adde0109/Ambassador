@@ -73,6 +73,7 @@ public class ForgeConnection {
             int packetID = ProtocolUtils.readVarInt(clientModListPacket);
             String[] mods = ProtocolUtils.readStringArray(clientModListPacket);
             resettable = Arrays.stream(mods).anyMatch((s) -> s.equals("clientresetpacket"));
+            clientModListPacket.release();
           }
         });
         //This gets also sent to vanilla
