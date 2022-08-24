@@ -31,6 +31,7 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoop;
@@ -59,10 +60,10 @@ public class ForgeServerSwitchHandler {
       return;
     }
     Optional<ForgeServerConnection> forgeServerConnectionOptional = ambassador.forgeHandshakeHandler.getForgeServerConnection(event.getOriginalServer());
-    Optional<ForgeConnection> forgeConnection = ambassador.forgeHandshakeHandler.getForgeConnection(event.getPlayer());
-    if (forgeConnection.isPresent()) {
-      //TODO: If the client can resync without kick, we don't need to check the server.
-      if (true) {
+    Optional<ForgeConnection> forgeConnectionOptional = ambassador.forgeHandshakeHandler.getForgeConnection(event.getPlayer());
+    if (forgeConnectionOptional.isPresent()) {
+      ForgeConnection forgeConnection = forgeConnectionOptional.get();
+      if (forgeConnection.isResettable()) {
         continuation.resume();
         return;
       }
@@ -86,7 +87,7 @@ public class ForgeServerSwitchHandler {
           event.getPlayer().setGameProfileProperties(properties);
 
           if (ambassador.config.reSyncOptionForge() != AmbassadorConfig.reSyncOption.NEVER) {
-            if (forgeConnection.get().getTransmittedHandshake().isEmpty() || !msg.equals(forgeConnection.get().getTransmittedHandshake().get())) {
+            if (forgeConnection.getTransmittedHandshake().isEmpty() || !msg.equals(forgeConnection.getTransmittedHandshake().get())) {
               event.setResult(ServerPreConnectEvent.ServerResult.denied());
               kickReSync(event.getPlayer(), forgeServerConnection);
             }
@@ -113,9 +114,14 @@ public class ForgeServerSwitchHandler {
   @Subscribe
   public void onServerConnectedEvent(ServerConnectedEvent event, Continuation continuation) {
     ConnectedPlayer player = ((ConnectedPlayer) event.getPlayer());
-    Optional<ForgeServerConnection> forgeServerConnection = ambassador.forgeHandshakeHandler.getForgeServerConnection(event.getServer());
     Optional<ForgeConnection> forgeConnection = ambassador.forgeHandshakeHandler.getForgeConnection(player);
-    if (forgeConnection.isPresent() && forgeServerConnection.isPresent() && event.getPreviousServer().isPresent()) {
+    if (forgeConnection.isEmpty() || !forgeConnection.get().isResettable()) {
+      //Don't bother unless the client can be reset.
+      continuation.resume();
+      return;
+    }
+    Optional<ForgeServerConnection> forgeServerConnection = ambassador.forgeHandshakeHandler.getForgeServerConnection(event.getServer());
+    if (forgeServerConnection.isPresent() && event.getPreviousServer().isPresent()) {
       Future<ForgeHandshakeUtils.CachedServerHandshake> handshakeFuture = forgeServerConnection.get().getHandshake();
         player.getConnection().eventLoop().submit(() -> {
           reSync(player,handshakeFuture,continuation);
@@ -140,7 +146,8 @@ public class ForgeServerSwitchHandler {
     private final Future<ForgeHandshakeUtils.CachedServerHandshake> handshakeFuture;
     private final MinecraftSessionHandler originalHandler;
     private final Continuation continuation;
-    private int sent = 0;
+
+    private List<Integer> inTransit = new ArrayList<>();
 
     ReSyncHandler(ConnectedPlayer player, Future<ForgeHandshakeUtils.CachedServerHandshake> handshakeFuture, Continuation continuation) {
       this.player = player;
@@ -152,32 +159,34 @@ public class ForgeServerSwitchHandler {
 
     @Override
     public boolean handle(LoginPluginResponse packet) {
-      if (sent == 0) {
-        ForgeHandshakeUtils.CachedServerHandshake handshake;
-        try {
-          handshake = handshakeFuture.get();
-        } catch (Exception e) {
+      if (!inTransit.removeIf((s) -> s==packet.getId())) {
+        if (packet.getId() == 98) {
+          ForgeHandshakeUtils.CachedServerHandshake handshake;
+          try {
+            handshake = handshakeFuture.get();
+          } catch (Exception e) {
+            return true;
+          }
+          sendHandshake(connection, handshake);
           return true;
         }
-        sent = sendHandshake(connection, handshake);
-      } else {
-        if (sent == 1) {
-          complete();
-        }
-        sent--;
+        return false;
+      } else if (inTransit.isEmpty()) {
+        complete();
       }
       return true;
     }
 
-    private int sendHandshake(MinecraftConnection connection, ForgeHandshakeUtils.CachedServerHandshake handshake) {
+    private void sendHandshake(MinecraftConnection connection, ForgeHandshakeUtils.CachedServerHandshake handshake) {
       int transactionId = 1;
       connection.delayedWrite(new LoginPluginMessage(transactionId, "fml:loginwrapper", Unpooled.wrappedBuffer(handshake.modListPacket)));
+      inTransit.add(transactionId);
       for (byte[] data : handshake.otherPackets) {
         transactionId++;
         connection.delayedWrite(new LoginPluginMessage(transactionId, "fml:loginwrapper", Unpooled.wrappedBuffer(data)));
+        inTransit.add(transactionId);
       }
       connection.flush();
-      return transactionId;
     }
     private void complete() {
       VelocityConfiguration configuration = (VelocityConfiguration) ambassador.server.getConfiguration();

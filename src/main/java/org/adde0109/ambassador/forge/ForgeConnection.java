@@ -6,9 +6,13 @@ import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 
 import java.io.EOFException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +30,7 @@ public class ForgeConnection {
   private boolean forced = false;
   private Optional<RegisteredServer> syncedTo = Optional.empty();
 
+  private boolean resettable;
 
   public ForgeConnection(LoginPhaseConnection connection, Logger logger) {
     this.connection = connection;
@@ -59,7 +64,16 @@ public class ForgeConnection {
           if (!ignoreSyncExepction && response == null) {
             logger.warn("Sync Exception: Client responded with an empty body.");
           }
-          recivedClientModlist = Optional.ofNullable(response);
+          if (response != null) {
+            recivedClientModlist = Optional.of(response);
+            //If the client is resettable.
+            ByteBuf clientModListPacket = Unpooled.wrappedBuffer(response);
+            clientModListPacket.readBytes(14);  //Channel Identifier
+            ProtocolUtils.readVarInt(clientModListPacket); //Length
+            int packetID = ProtocolUtils.readVarInt(clientModListPacket);
+            String[] mods = ProtocolUtils.readStringArray(clientModListPacket);
+            resettable = Arrays.stream(mods).anyMatch((s) -> s.equals("clientresetpacket"));
+          }
         });
         //This gets also sent to vanilla
         sendOther(msg.otherPackets).thenAccept((response) -> {
@@ -124,6 +138,10 @@ public class ForgeConnection {
 
   public LoginPhaseConnection getConnection() {
     return connection;
+  }
+
+  public boolean isResettable() {
+    return resettable;
   }
 
   public Optional<ForgeHandshakeUtils.CachedServerHandshake> getTransmittedHandshake() {
