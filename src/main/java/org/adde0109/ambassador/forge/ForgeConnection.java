@@ -68,9 +68,9 @@ public class ForgeConnection {
           }
           //TODO: Generate the ACK packet ourself.
           ForgeConnection.recivedClientACK = (response == null) ? ForgeConnection.recivedClientACK : response;
-          transmittedHandshake = Optional.of(msg);
           syncedTo = Optional.of(forgeServerConnection.getServer());
         });
+        transmittedHandshake = Optional.of(msg);
         future.complete(true);
       }
     });
