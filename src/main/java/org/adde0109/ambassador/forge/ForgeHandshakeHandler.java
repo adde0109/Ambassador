@@ -4,8 +4,10 @@ import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
+import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
@@ -15,10 +17,18 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.velocitypowered.proxy.connection.ConnectionType;
+import com.velocitypowered.proxy.connection.ConnectionTypes;
+import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.Ambassador;
+import org.checkerframework.checker.units.qual.A;
 
 public class ForgeHandshakeHandler {
 
@@ -37,37 +47,45 @@ public class ForgeHandshakeHandler {
 
   @Subscribe(order = PostOrder.LAST)
   public void onPreLoginEvent(PreLoginEvent event, Continuation continuation) {
-    if (!ambassador.config.shouldHandle(event.getConnection().getProtocolVersion().getProtocol()) || !event.getResult().isAllowed()) {
+    if (event.getConnection().getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_13) < 0) {
       continuation.resume();
       return;
     }
-    RegisteredServer defaultServer = ambassador.config.getServer(event.getConnection().getProtocolVersion().getProtocol());
 
-    ForgeConnection forgeConnection = new ForgeConnection((LoginPhaseConnection) event.getConnection(), ambassador.logger);
-    forgeConnection.testIfForge((LoginPhaseConnection) event.getConnection())
-        .thenAccept((isForge) -> {
-          if (isForge)
-            registerForgeConnection(forgeConnection);
-        });
-
-    if (ambassador.forgeServerSwitchHandler.reSyncMap.containsKey(event.getUsername())) {
-      forgeConnection.sync(ambassador.forgeServerSwitchHandler.reSyncMap.remove(event.getUsername())).thenAccept((done) -> {
-        continuation.resume();
-      });
-      forgeConnection.setForced(true);
-    } else if (defaultServer != null) {
-      //If a connection does not already exist, create one.
-      if (!forgeServerConnectionMap.containsKey(defaultServer)) {
-        forgeServerConnectionMap.put(defaultServer, new ForgeServerConnection(defaultServer));
-      }
-      //Forge Handshake
-      forgeConnection.sync(forgeServerConnectionMap.get(defaultServer)).thenAccept((done) -> {
-        continuation.resume();
-      });
-      forgeConnection.setForced(ambassador.config.getForced(forgeConnection.getConnection().getProtocolVersion().getProtocol()));
-    } else {
+    MinecraftConnection connection = (MinecraftConnection)event.getConnection();
+    ((LoginPhaseConnection) event.getConnection()).sendLoginPluginMessage(
+            MinecraftChannelIdentifier.create("fml","loginwrapper"),
+            ForgeHandshakeUtils.generateTestPacket(),(msg) -> {
+              if (connection.getType() == ConnectionTypes.VANILLA) {
+                if (msg != null) {
+                  connection.setType(new ForgeConnectionType());
+                }
+              }
+    });
+    //SEND ===CLIENT MODLIST REQUEST===
+    ((LoginPhaseConnection) event.getConnection()).sendLoginPluginMessage(
+            MinecraftChannelIdentifier.create("fml","loginwrapper"),
+            ForgeHandshakeUtils.generateTestPacket(),(msg) -> {
+                if (msg != null) {
+                  connection.setType(new ForgeConnectionType());
+                  //Handle the response
+                }
+            });
+    continuation.resume();
+  }
+  @Subscribe
+  public void onPermissionsSetupEvent(PermissionsSetupEvent event, Continuation continuation) {
+    //Filters...
+    if (!(event.getSubject() instanceof ConnectedPlayer)) {
       continuation.resume();
+      return;
     }
+    ConnectedPlayer player = ((ConnectedPlayer) event.getSubject());
+    if (!(player.getConnection().getType() instanceof ForgeConnectionType)) {
+      continuation.resume();
+      return;
+    }
+    ((ForgeClientConnectionPhase) player.getPhase()).handleLogin();
   }
 
   private void registerForgeConnection(ForgeConnection forgeConnection) {
