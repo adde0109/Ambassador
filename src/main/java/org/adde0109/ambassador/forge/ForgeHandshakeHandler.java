@@ -11,15 +11,15 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.Ambassador;
-import org.bstats.velocity.Metrics;
+
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 public class ForgeHandshakeHandler {
 
@@ -52,9 +52,7 @@ public class ForgeHandshakeHandler {
         });
 
     if (ambassador.forgeServerSwitchHandler.reSyncMap.containsKey(event.getUsername())) {
-      forgeConnection.sync(ambassador.forgeServerSwitchHandler.reSyncMap.remove(event.getUsername())).thenAccept((done) -> {
-        continuation.resume();
-      });
+      forgeConnection.sync(ambassador.forgeServerSwitchHandler.reSyncMap.remove(event.getUsername())).thenAccept((done) -> continuation.resume());
       forgeConnection.setForced(true);
     } else if (defaultServer != null) {
       //If a connection does not already exist, create one.
@@ -62,9 +60,7 @@ public class ForgeHandshakeHandler {
         forgeServerConnectionMap.put(defaultServer, new ForgeServerConnection(defaultServer));
       }
       //Forge Handshake
-      forgeConnection.sync(forgeServerConnectionMap.get(defaultServer)).thenAccept((done) -> {
-        continuation.resume();
-      });
+      forgeConnection.sync(forgeServerConnectionMap.get(defaultServer)).thenAccept((done) -> continuation.resume());
       forgeConnection.setForced(ambassador.config.getForced(forgeConnection.getConnection().getProtocolVersion().getProtocol()));
     } else {
       continuation.resume();

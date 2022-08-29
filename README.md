@@ -4,7 +4,7 @@ This is a Velocity plugin that makes it possible to host a modern forge server b
 
 Unlike other solutions, this plugin does not require any special modifications to the client. (The player doesn't need to do anything)
 
-This plugin is right now in it's alpha stage and should not be used in production, use it at your own risk, you have been warned.
+This plugin is right now in its alpha stage and should not be used in production, use it at your own risk, you have been warned.
 ## How to get started:
 ### On the Velocity proxy side:
 1. Download and install this plugin to your proxy.
@@ -17,7 +17,8 @@ This plugin is right now in it's alpha stage and should not be used in productio
 1. Download and install "Ambassador-Forge" as a mod to your forge server. (Found at https://github.com/adde0109/Ambassador-Forge)
 2. Start the server.
 3. If you wish to use modern forwarding, close the server and open "ambassador-common.toml" in the config folder and put your forwarding secret in the "forwardingSecret" field.
-4. You are now ready to start the server and connect to it with Velocity!
+4. In Server.Properties make sure online-mode is set to false.
+5. You are now ready to start the server and connect to it with Velocity!
 
 ## Features
 * Server Switching.

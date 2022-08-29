@@ -9,19 +9,15 @@ import com.velocitypowered.api.event.proxy.ProxyReloadEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
-
-import java.util.concurrent.Callable;
 import org.adde0109.ambassador.forge.ForgeConnection;
 import org.adde0109.ambassador.forge.ForgeHandshakeHandler;
 import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.forge.ForgeServerSwitchHandler;
-import org.bstats.MetricsBase;
 import org.bstats.charts.SingleLineChart;
 import org.bstats.velocity.Metrics;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
-import java.util.*;
 
 @Plugin(id = "ambassador", name = "Ambassador", version = "0.5.1", authors = {"adde0109"})
 public class Ambassador {
@@ -91,11 +87,6 @@ public class Ambassador {
 
   private void initMetrics() {
     Metrics metrics = metricsFactory.make(this, 15655);
-    metrics.addCustomChart(new SingleLineChart("modern_forge_players", new Callable<Integer>() {
-      @Override
-      public Integer call() throws Exception {
-        return (forgeHandshakeHandler != null) ? forgeHandshakeHandler.getAmountOfForgeConnections() : 0;
-      }
-    }));
+    metrics.addCustomChart(new SingleLineChart("modern_forge_players", () -> (forgeHandshakeHandler != null) ? forgeHandshakeHandler.getAmountOfForgeConnections() : 0));
   }
 }
