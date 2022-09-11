@@ -1,14 +1,10 @@
 package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.api.event.Continuation;
-import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
-import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
-import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.api.proxy.LoginPhaseConnection;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
@@ -17,18 +13,15 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
-import com.velocitypowered.proxy.connection.ConnectionType;
-import com.velocitypowered.proxy.connection.ConnectionTypes;
-import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.Ambassador;
-import org.checkerframework.checker.units.qual.A;
+import org.adde0109.ambassador.velocity.ForgeClientConnectionPhase;
 
 public class ForgeHandshakeHandler {
 
@@ -45,47 +38,27 @@ public class ForgeHandshakeHandler {
     this.ambassador = ambassador;
   }
 
-  @Subscribe(order = PostOrder.LAST)
-  public void onPreLoginEvent(PreLoginEvent event, Continuation continuation) {
-    if (event.getConnection().getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_13) < 0) {
-      continuation.resume();
-      return;
-    }
 
-    MinecraftConnection connection = (MinecraftConnection)event.getConnection();
-    ((LoginPhaseConnection) event.getConnection()).sendLoginPluginMessage(
-            MinecraftChannelIdentifier.create("fml","loginwrapper"),
-            ForgeHandshakeUtils.generateTestPacket(),(msg) -> {
-              if (connection.getType() == ConnectionTypes.VANILLA) {
-                if (msg != null) {
-                  connection.setType(new ForgeConnectionType());
-                }
-              }
+
+  public void handleLogin(ConnectedPlayer player, ForgeClientConnectionPhase phase, Continuation continuation) {
+    getInitialHandshake(player).whenComplete((msg,ex) -> {
+      if (ex != null) {
+        //SEND RESET PACKET
+      } else {
+        //SEND MODLIST
+      }
     });
-    //SEND ===CLIENT MODLIST REQUEST===
-    ((LoginPhaseConnection) event.getConnection()).sendLoginPluginMessage(
-            MinecraftChannelIdentifier.create("fml","loginwrapper"),
-            ForgeHandshakeUtils.generateTestPacket(),(msg) -> {
-                if (msg != null) {
-                  connection.setType(new ForgeConnectionType());
-                  //Handle the response
-                }
-            });
-    continuation.resume();
   }
-  @Subscribe
-  public void onPermissionsSetupEvent(PermissionsSetupEvent event, Continuation continuation) {
-    //Filters...
-    if (!(event.getSubject() instanceof ConnectedPlayer)) {
-      continuation.resume();
-      return;
+
+  private CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> getInitialHandshake(ConnectedPlayer player) {
+    CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> future;
+    RegisteredServer initialServer;
+    if((initialServer = ambassador.config.getServer(player.getConnection().getProtocolVersion().getProtocol())) != null) {
+      future = ForgeHandshakeUtils.HandshakeReceiver.downloadHandshake(initialServer);
+    } else {
+      future = CompletableFuture.failedFuture(new Exception("No initial server specified"));
     }
-    ConnectedPlayer player = ((ConnectedPlayer) event.getSubject());
-    if (!(player.getConnection().getType() instanceof ForgeConnectionType)) {
-      continuation.resume();
-      return;
-    }
-    ((ForgeClientConnectionPhase) player.getPhase()).handleLogin();
+    return future;
   }
 
   private void registerForgeConnection(ForgeConnection forgeConnection) {

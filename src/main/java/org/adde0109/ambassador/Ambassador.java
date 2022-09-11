@@ -10,18 +10,23 @@ import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 
+import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
+
+import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.network.ConnectionManager;
+import io.netty.channel.ChannelInitializer;
 import org.adde0109.ambassador.forge.ForgeConnection;
 import org.adde0109.ambassador.forge.ForgeHandshakeHandler;
 import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.forge.ForgeServerSwitchHandler;
-import org.bstats.MetricsBase;
+import org.adde0109.ambassador.velocity.VelocityChannelInitializer;
+import org.adde0109.ambassador.velocity.VelocityEventHandler;
 import org.bstats.charts.SingleLineChart;
 import org.bstats.velocity.Metrics;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
-import java.util.*;
 
 @Plugin(id = "ambassador", name = "Ambassador", version = "0.4.0-reset", authors = {"adde0109"})
 public class Ambassador {
@@ -46,14 +51,14 @@ public class Ambassador {
   }
 
   @Subscribe
-  public void onProxyInitialization(ProxyInitializeEvent event) {
+  public void onProxyInitialization(ProxyInitializeEvent event) throws ReflectiveOperationException {
     initMetrics();
 
     config = AmbassadorConfig.readOrCreateConfig(dataDirectory,server,logger);
     if(config != null) {
       forgeHandshakeHandler = new ForgeHandshakeHandler(this);
       forgeServerSwitchHandler = new ForgeServerSwitchHandler(this);
-      server.getEventManager().register(this, forgeHandshakeHandler);
+      server.getEventManager().register(this, new VelocityEventHandler(this));
       server.getEventManager().register(this,forgeServerSwitchHandler);
     }
     else {
@@ -61,6 +66,14 @@ public class Ambassador {
     }
 
     ForgeHandshakeUtils.HandshakeReceiver.logger = logger;
+    inject();
+  }
+
+  private void inject() throws ReflectiveOperationException {
+    Field cmField = VelocityServer.class.getDeclaredField("cm");
+    cmField.setAccessible(true);
+    ChannelInitializer<?> original = ((ConnectionManager) cmField.get(server)).serverChannelInitializer.get();
+    ((ConnectionManager) cmField.get(server)).serverChannelInitializer.set(new VelocityChannelInitializer(original));
   }
 
   @Subscribe
