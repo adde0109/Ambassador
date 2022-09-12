@@ -5,6 +5,7 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import org.adde0109.ambassador.Ambassador;
+import org.adde0109.ambassador.forge.ForgeFML2ClientConnectionPhase;
 
 public class VelocityEventHandler {
 
@@ -20,7 +21,7 @@ public class VelocityEventHandler {
       continuation.resume();
       return;
     }
-    if (!(player.getPhase() instanceof ForgeClientConnectionPhase phase)) {
+    if (!(player.getPhase() instanceof ForgeFML2ClientConnectionPhase phase)) {
       continuation.resume();
       return;
     }

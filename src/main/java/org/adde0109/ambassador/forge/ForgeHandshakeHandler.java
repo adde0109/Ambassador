@@ -2,7 +2,6 @@ package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
-import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.proxy.Player;
@@ -14,14 +13,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.Ambassador;
-import org.adde0109.ambassador.velocity.ForgeClientConnectionPhase;
 
 public class ForgeHandshakeHandler {
 
@@ -40,14 +37,8 @@ public class ForgeHandshakeHandler {
 
 
 
-  public void handleLogin(ConnectedPlayer player, ForgeClientConnectionPhase phase, Continuation continuation) {
-    getInitialHandshake(player).whenComplete((msg,ex) -> {
-      if (ex != null) {
-        //SEND RESET PACKET
-      } else {
-        //SEND MODLIST
-      }
-    });
+  public void handleLogin(ConnectedPlayer player, ForgeFML2ClientConnectionPhase phase, Continuation continuation) {
+    getInitialHandshake(player).whenComplete((msg,ex) -> phase.handleLogin(msg));
   }
 
   private CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> getInitialHandshake(ConnectedPlayer player) {

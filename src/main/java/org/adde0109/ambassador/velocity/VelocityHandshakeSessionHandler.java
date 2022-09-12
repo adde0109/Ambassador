@@ -8,6 +8,7 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.Handshake;
 import io.netty.buffer.ByteBuf;
+import org.adde0109.ambassador.forge.ForgeConnectionType;
 
 public class VelocityHandshakeSessionHandler implements MinecraftSessionHandler {
   private final HandshakeSessionHandler original;
