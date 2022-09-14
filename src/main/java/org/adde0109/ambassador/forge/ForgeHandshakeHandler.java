@@ -38,7 +38,12 @@ public class ForgeHandshakeHandler {
 
 
   public void handleLogin(ConnectedPlayer player, ForgeFML2ClientConnectionPhase phase, Continuation continuation) {
-    getInitialHandshake(player).whenComplete((msg,ex) -> phase.handleLogin(msg));
+    getInitialHandshake(player).whenCompleteAsync((msg,ex) -> {
+      if (ex != null) {
+        ambassador.logger.warn("Forge player, " + player.getUsername() + ", is entering vanilla-mode because of: " + ex.getMessage());
+      }
+      phase.handleLogin(msg);
+    }, player.getConnection().eventLoop());
   }
 
   private CompletableFuture<ForgeHandshakeUtils.CachedServerHandshake> getInitialHandshake(ConnectedPlayer player) {
@@ -47,7 +52,7 @@ public class ForgeHandshakeHandler {
     if((initialServer = ambassador.config.getServer(player.getConnection().getProtocolVersion().getProtocol())) != null) {
       future = ForgeHandshakeUtils.HandshakeReceiver.downloadHandshake(initialServer);
     } else {
-      future = CompletableFuture.failedFuture(new Exception("No initial server specified"));
+      future = CompletableFuture.failedFuture(new Exception("No initial server is specified"));
     }
     return future;
   }
