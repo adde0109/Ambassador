@@ -42,7 +42,7 @@ public class ForgeHandshakeHandler {
       if (ex != null) {
         ambassador.logger.warn("Forge player, " + player.getUsername() + ", is entering vanilla-mode because of: " + ex.getMessage());
       }
-      phase.handleLogin(msg);
+      phase.handleLogin(msg,continuation);
     }, player.getConnection().eventLoop());
   }
 

@@ -1,5 +1,6 @@
 package org.adde0109.ambassador.velocity;
 
+import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
@@ -9,8 +10,8 @@ import javax.annotation.Nullable;
 
 public interface VelocityForgeClientConnectionPhase extends ClientConnectionPhase {
 
-  default void handleLogin(@Nullable ForgeHandshakeUtils.CachedServerHandshake initialHandshake) {
+  default void handleLogin(@Nullable ForgeHandshakeUtils.CachedServerHandshake initialHandshake, Continuation continuation) {
   }
-  default void handle(LoginPluginResponse packet) {
+  default void handle(LoginPluginResponse packet, boolean lastMessage) {
   }
 }

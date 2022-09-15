@@ -1,11 +1,14 @@
 package org.adde0109.ambassador.velocity;
 
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
-import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHandler {
 
+  private final ArrayList<Integer> listenerList = new ArrayList();
   private final VelocityForgeClientConnectionPhase phase;
   public VelocityForgeHandshakeSessionHandler(VelocityForgeClientConnectionPhase phase) {
     this.phase = phase;
@@ -13,10 +16,12 @@ public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHan
 
   @Override
   public boolean handle(LoginPluginResponse packet) {
-    //TODO: Check if we sent it
-    if (packet.getId() == 1 && packet.getId() == 98) {
-      phase.handle(packet);
+    if (listenerList.removeIf(id -> id.equals(packet.getId()))) {
+      phase.handle(packet, listenerList.isEmpty());
     }
     return true;
+  }
+  public void listen(int id) {
+    listenerList.add(id);
   }
 }
