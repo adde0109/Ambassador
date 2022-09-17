@@ -18,8 +18,9 @@ public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHan
   public boolean handle(LoginPluginResponse packet) {
     if (listenerList.removeIf(id -> id.equals(packet.getId()))) {
       phase.handle(packet, listenerList.isEmpty());
+      return true;
     }
-    return true;
+    return false;
   }
   public void listen(int id) {
     listenerList.add(id);

@@ -9,6 +9,7 @@ import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import javax.annotation.Nullable;
 
 public interface VelocityForgeClientConnectionPhase extends ClientConnectionPhase {
+  //TODO:Make class when PCF is done
 
   default void handleLogin(@Nullable ForgeHandshakeUtils.CachedServerHandshake initialHandshake, Continuation continuation) {
   }

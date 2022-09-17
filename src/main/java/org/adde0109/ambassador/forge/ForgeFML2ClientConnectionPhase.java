@@ -12,18 +12,20 @@ import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnectionPhase {
 
   private final MinecraftConnection connection;
   private boolean isResettable;
-  private ByteBuf modListData;
+  private Optional<ByteBuf> modListData = Optional.empty();
   private Continuation whenComplete;
   ForgeFML2ClientConnectionPhase(MinecraftConnection connection) {
     this.connection = connection;
   }
   @Override
   public void handleLogin(ForgeHandshakeUtils.CachedServerHandshake handshake, Continuation continuation) {
+    this.whenComplete = continuation;
     VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(this);
     if(handshake == null) {
       this.connection.write(new LoginPluginMessage(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
@@ -44,8 +46,13 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
   public void handle(LoginPluginResponse packet, boolean lastMessage) {
     if (packet.getId() == 98) {
       isResettable = packet.isSuccess();
-    } else {
-      modListData = packet.content().retain();
+    } else if (packet.getId() == 1) {
+      if (!packet.isSuccess()) {
+        //TODO: Write disconnect message to end user
+        connection.close();
+        return;
+      }
+      modListData = Optional.of(packet.content().retain());
     }
     if (lastMessage) {
       whenComplete.resume();
