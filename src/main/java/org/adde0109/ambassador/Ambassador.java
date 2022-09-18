@@ -20,7 +20,7 @@ import org.adde0109.ambassador.forge.ForgeConnection;
 import org.adde0109.ambassador.forge.ForgeHandshakeHandler;
 import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.forge.ForgeServerSwitchHandler;
-import org.adde0109.ambassador.velocity.VelocityChannelInitializer;
+import org.adde0109.ambassador.velocity.VelocityServerChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityEventHandler;
 import org.bstats.charts.SingleLineChart;
 import org.bstats.velocity.Metrics;
@@ -73,7 +73,7 @@ public class Ambassador {
     Field cmField = VelocityServer.class.getDeclaredField("cm");
     cmField.setAccessible(true);
     ChannelInitializer<?> original = ((ConnectionManager) cmField.get(server)).serverChannelInitializer.get();
-    ((ConnectionManager) cmField.get(server)).serverChannelInitializer.set(new VelocityChannelInitializer(original));
+    ((ConnectionManager) cmField.get(server)).serverChannelInitializer.set(new VelocityServerChannelInitializer(original));
   }
 
   @Subscribe

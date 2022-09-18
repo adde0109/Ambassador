@@ -12,50 +12,53 @@ import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnectionPhase {
-
-  private final MinecraftConnection connection;
   private boolean isResettable;
   private Optional<ByteBuf> modListData = Optional.empty();
+
+  private final ArrayList<Integer> listenerList = new ArrayList();
   private Continuation whenComplete;
-  ForgeFML2ClientConnectionPhase(MinecraftConnection connection) {
-    this.connection = connection;
-  }
   @Override
-  public void handleLogin(ForgeHandshakeUtils.CachedServerHandshake handshake, Continuation continuation) {
+  public void handleLogin(ConnectedPlayer player,ForgeHandshakeUtils.CachedServerHandshake handshake, Continuation continuation) {
     this.whenComplete = continuation;
-    VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(this);
+    final MinecraftConnection connection = player.getConnection();
+    VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player);
     if(handshake == null) {
-      this.connection.write(new LoginPluginMessage(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
-      sessionHandler.listen(98);
+      connection.delayedWrite(new LoginPluginMessage(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
+      listenerList.add(98);
     } else {
-      this.connection.delayedWrite(new LoginPluginMessage(1,"fml:loginwrapper", Unpooled.wrappedBuffer(handshake.modListPacket)));
-      sessionHandler.listen(1);
+      connection.delayedWrite(new LoginPluginMessage(1,"fml:loginwrapper", Unpooled.wrappedBuffer(handshake.modListPacket)));
+      listenerList.add(1);
       for (int i = 0;i<handshake.otherPackets.size();i++) {
-        this.connection.delayedWrite(new LoginPluginMessage(i+2,"fml:loginwrapper", Unpooled.wrappedBuffer(handshake.otherPackets.get(i))));
-        sessionHandler.listen(i+2);
+        connection.delayedWrite(new LoginPluginMessage(i+2,"fml:loginwrapper", Unpooled.wrappedBuffer(handshake.otherPackets.get(i))));
+        listenerList.add(i+2);
       }
-      this.connection.setSessionHandler(sessionHandler);
-      this.connection.flush();
     }
+    connection.setSessionHandler(sessionHandler);
+    connection.flush();
   }
 
   @Override
-  public void handle(LoginPluginResponse packet, boolean lastMessage) {
+  public boolean handle(ConnectedPlayer player, LoginPluginResponse packet) {
+    if (!listenerList.removeIf(id -> id.equals(packet.getId()))) {
+      return false;
+    }
     if (packet.getId() == 98) {
       isResettable = packet.isSuccess();
     } else if (packet.getId() == 1) {
       if (!packet.isSuccess()) {
         //TODO: Write disconnect message to end user
-        connection.close();
-        return;
+        player.getConnection().close();
+        return true;
       }
       modListData = Optional.of(packet.content().retain());
     }
-    if (lastMessage) {
+    if (listenerList.isEmpty()) {
       whenComplete.resume();
     }
+    return true;
   }
 }

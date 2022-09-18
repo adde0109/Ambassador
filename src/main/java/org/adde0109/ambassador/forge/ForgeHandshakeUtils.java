@@ -65,7 +65,13 @@ public class ForgeHandshakeUtils {
   public static byte[] generateResetPacket() {
     ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
     writeVarInt(dataAndPacketIdStream,98);
-    return dataAndPacketIdStream.toByteArray();
+
+    ByteArrayDataOutput stream = ByteStreams.newDataOutput();
+    byte[] dataAndPacketId = dataAndPacketIdStream.toByteArray();
+    writeUtf(stream,"fml:handshake");
+    writeVarInt(stream,dataAndPacketId.length);
+    stream.write(dataAndPacketId);
+    return stream.toByteArray();
   }
 
   public static class HandshakeReceiver {

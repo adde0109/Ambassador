@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
 
-public class VelocityChannelInitializer extends ChannelInitializer<Channel> {
+public class VelocityServerChannelInitializer extends ChannelInitializer<Channel> {
   private static final Method INIT_CHANNEL;
 
   private final ChannelInitializer<?> original;
@@ -24,7 +24,7 @@ public class VelocityChannelInitializer extends ChannelInitializer<Channel> {
     }
   }
 
-  public VelocityChannelInitializer(ChannelInitializer<?> original) {
+  public VelocityServerChannelInitializer(ChannelInitializer<?> original) {
     this.original = original;
   }
 

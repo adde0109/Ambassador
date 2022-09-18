@@ -8,7 +8,7 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.Handshake;
 import io.netty.buffer.ByteBuf;
-import org.adde0109.ambassador.forge.ForgeConnectionType;
+import org.adde0109.ambassador.forge.ForgeFML2ConnectionType;
 
 public class VelocityHandshakeSessionHandler implements MinecraftSessionHandler {
   private final HandshakeSessionHandler original;
@@ -24,7 +24,7 @@ public class VelocityHandshakeSessionHandler implements MinecraftSessionHandler 
     handshake.handle(original);
     if (connection.getType() == ConnectionTypes.VANILLA && connection.getState() == StateRegistry.LOGIN) {
       if (handshake.getServerAddress().split("\0")[1].equals("FML2")) {
-        connection.setType(new ForgeConnectionType(connection));
+        connection.setType(new ForgeFML2ConnectionType());
       }
     }
     return true;
@@ -33,7 +33,7 @@ public class VelocityHandshakeSessionHandler implements MinecraftSessionHandler 
 
   @Override
   public void handleGeneric(MinecraftPacket packet) {
-    packet.handle(original);
+    original.handleGeneric(packet);
   }
 
   @Override

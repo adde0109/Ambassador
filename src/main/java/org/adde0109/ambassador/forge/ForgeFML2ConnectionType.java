@@ -6,23 +6,18 @@ import com.velocitypowered.proxy.connection.ConnectionType;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
-import org.adde0109.ambassador.forge.ForgeFML2ClientConnectionPhase;
+import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendConnectionPhase;
 
-public class ForgeConnectionType implements ConnectionType {
-
-  private final MinecraftConnection connection;
-  public ForgeConnectionType(MinecraftConnection connection) {
-    this.connection = connection;
-  }
+public class ForgeFML2ConnectionType implements ConnectionType {
 
   @Override
   public ClientConnectionPhase getInitialClientPhase() {
-    return new ForgeFML2ClientConnectionPhase(connection);
+    return new ForgeFML2ClientConnectionPhase();
   }
 
   @Override
   public BackendConnectionPhase getInitialBackendPhase() {
-    return null;
+    return new VelocityForgeBackendConnectionPhase();
   }
 
   @Override

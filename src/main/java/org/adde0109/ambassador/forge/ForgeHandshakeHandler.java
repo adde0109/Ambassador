@@ -19,6 +19,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.Ambassador;
+import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
 public class ForgeHandshakeHandler {
 
@@ -37,12 +38,12 @@ public class ForgeHandshakeHandler {
 
 
 
-  public void handleLogin(ConnectedPlayer player, ForgeFML2ClientConnectionPhase phase, Continuation continuation) {
+  public void handleLogin(ConnectedPlayer player, Continuation continuation) {
     getInitialHandshake(player).whenCompleteAsync((msg,ex) -> {
       if (ex != null) {
         ambassador.logger.warn("Forge player, " + player.getUsername() + ", is entering vanilla-mode because of: " + ex.getMessage());
       }
-      phase.handleLogin(msg,continuation);
+      ((VelocityForgeClientConnectionPhase) player.getPhase()).handleLogin(player,msg,continuation);
     }, player.getConnection().eventLoop());
   }
 
@@ -88,7 +89,7 @@ public class ForgeHandshakeHandler {
     forgeServerConnectionMap.remove(server);
   }
 
-  @Subscribe
+  //@Subscribe
   public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
     if (!event.getIdentifier().equals(LOGIN_WRAPPER_ID)) {
       continuation.resume();
@@ -110,7 +111,7 @@ public class ForgeHandshakeHandler {
     }
   }
 
-  @Subscribe
+  //@Subscribe
   public void onKickedFromServerEvent(KickedFromServerEvent event, Continuation continuation) {
     Optional<ForgeConnection> forgeConnectionOptional = getForgeConnection(event.getPlayer());
     if (forgeConnectionOptional.isPresent()) {

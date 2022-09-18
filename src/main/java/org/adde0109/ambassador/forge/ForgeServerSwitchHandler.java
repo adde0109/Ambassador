@@ -53,7 +53,7 @@ public class ForgeServerSwitchHandler {
   }
 
 
-  @Subscribe(order = PostOrder.LAST)
+  //@Subscribe(order = PostOrder.LAST)
   public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
     if (!event.getResult().isAllowed()) {
       continuation.resume();
@@ -111,7 +111,7 @@ public class ForgeServerSwitchHandler {
     reSyncMap.put(player.getUsername(),forgeServerConnection);
   }
 
-  @Subscribe
+  //@Subscribe
   public void onServerConnectedEvent(ServerConnectedEvent event, Continuation continuation) {
     ConnectedPlayer player = ((ConnectedPlayer) event.getPlayer());
     Optional<ForgeConnection> forgeConnection = ambassador.forgeHandshakeHandler.getForgeConnection(player);
