@@ -37,6 +37,8 @@ public class VelocityForgeBackendHandshakeSessionHandler implements MinecraftSes
 
   @Override
   public boolean handle(ServerLoginSuccess packet) {
-    return original.handle(packet);
+    original.handle(packet);
+    ((VelocityForgeBackendConnectionPhase) serverCon.getPhase()).handleSuccess(serverCon);
+    return true;
   }
 }

@@ -8,7 +8,16 @@ import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.util.ModInfo;
 import java.util.*;
 
+import com.velocitypowered.api.util.UuidUtils;
+import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.config.PlayerInfoForwarding;
+import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.buffer.ByteBuf;
+import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
@@ -73,11 +82,46 @@ public class ForgeHandshakeUtils {
     stream.write(dataAndPacketId);
     return stream.toByteArray();
   }
+  public static byte[] generatePluginResetPacket() {
+    ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
+    writeVarInt(dataAndPacketIdStream,98);
+    return dataAndPacketIdStream.toByteArray();
+  }
+
+  public static byte[] generateEmptyModlist() {
+    ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
+    writeVarInt(dataAndPacketIdStream,1);
+    writeVarInt(dataAndPacketIdStream,0);
+    writeVarInt(dataAndPacketIdStream,0);
+    writeVarInt(dataAndPacketIdStream,0);
+
+    ByteArrayDataOutput stream = ByteStreams.newDataOutput();
+    byte[] dataAndPacketId = dataAndPacketIdStream.toByteArray();
+    writeUtf(stream,"fml:handshake");
+    writeVarInt(stream,dataAndPacketId.length);
+    stream.write(dataAndPacketId);
+    return stream.toByteArray();
+  }
+
+  static public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
+    VelocityConfiguration configuration = (VelocityConfiguration) server.getConfiguration();
+    UUID playerUniqueId = player.getUniqueId();
+    if (configuration.getPlayerInfoForwardingMode() == PlayerInfoForwarding.NONE) {
+      playerUniqueId = UuidUtils.generateOfflinePlayerUuid(player.getUsername());
+    }
+    ServerLoginSuccess success = new ServerLoginSuccess();
+    success.setUsername(player.getUsername());
+    success.setUuid(playerUniqueId);
+    connection.write(success);
+
+    connection.setState(StateRegistry.PLAY);
+    connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
+  }
 
   public static final byte[] ACKPacket = generateACKPacket();
   private static byte[] generateACKPacket() {
     ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
-    writeVarInt(dataAndPacketIdStream,4);
+    writeVarInt(dataAndPacketIdStream,99);
 
     ByteArrayDataOutput stream = ByteStreams.newDataOutput();
     byte[] dataAndPacketId = dataAndPacketIdStream.toByteArray();

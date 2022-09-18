@@ -15,6 +15,7 @@ import java.util.List;
 public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHandler {
   private final MinecraftSessionHandler original;
   private final ConnectedPlayer player;
+
   public VelocityForgeHandshakeSessionHandler(MinecraftSessionHandler original, ConnectedPlayer player) {
     this.original = original;
     this.player = player;
@@ -36,5 +37,9 @@ public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHan
   @Override
   public void disconnected() {
     original.disconnected();
+  }
+
+  public MinecraftSessionHandler getOriginal() {
+    return this.original;
   }
 }

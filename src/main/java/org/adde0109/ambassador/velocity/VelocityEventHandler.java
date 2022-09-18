@@ -4,6 +4,7 @@ import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.ConnectionTypes;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
@@ -11,6 +12,7 @@ import com.velocitypowered.proxy.connection.backend.BackendConnectionPhases;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.ForgeFML2ClientConnectionPhase;
@@ -54,11 +56,14 @@ public class VelocityEventHandler {
       continuation.resumeWithException(new NullPointerException());
       return;
     }
-    serverCon.setConnectionPhase(new VelocityForgeBackendConnectionPhase());
-    connection.setType(new ForgeFML2ConnectionType());
-    MinecraftSessionHandler sessionHandler = new VelocityForgeBackendHandshakeSessionHandler(connection.getSessionHandler(),serverCon);
-    connection.setSessionHandler(sessionHandler);
-    sessionHandler.handle(new LoginPluginMessage(event.getSequenceId(),event.getIdentifier().getId(), Unpooled.wrappedBuffer(event.getContents())));
-    continuation.resume();
+    connection.eventLoop().submit(() -> {
+      connection.setType(new ForgeFML2ConnectionType());
+      serverCon.setConnectionPhase(new VelocityForgeBackendConnectionPhase(ambassador));
+      byte[] response = ((VelocityForgeBackendConnectionPhase)serverCon.getPhase()).generateResponse(serverCon.getPlayer(), Unpooled.wrappedBuffer(event.getContents()));
+      event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(response));
+      continuation.resume();
+      MinecraftSessionHandler sessionHandler = new VelocityForgeBackendHandshakeSessionHandler(connection.getSessionHandler(),serverCon);
+      connection.setSessionHandler(sessionHandler);
+    });
   }
 }
