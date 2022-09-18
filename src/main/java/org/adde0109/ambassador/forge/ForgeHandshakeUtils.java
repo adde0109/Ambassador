@@ -74,6 +74,19 @@ public class ForgeHandshakeUtils {
     return stream.toByteArray();
   }
 
+  public static final byte[] ACKPacket = generateACKPacket();
+  private static byte[] generateACKPacket() {
+    ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
+    writeVarInt(dataAndPacketIdStream,4);
+
+    ByteArrayDataOutput stream = ByteStreams.newDataOutput();
+    byte[] dataAndPacketId = dataAndPacketIdStream.toByteArray();
+    writeUtf(stream,"fml:handshake");
+    writeVarInt(stream,dataAndPacketId.length);
+    stream.write(dataAndPacketId);
+    return stream.toByteArray();
+  }
+
   public static class HandshakeReceiver {
 
     private int partLength;

@@ -7,6 +7,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
@@ -17,7 +18,9 @@ import java.util.Optional;
 
 public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnectionPhase {
   private boolean isResettable;
-  private Optional<ByteBuf> modListData = Optional.empty();
+
+  //TODO: Use modData inside ConnectedPlayer instead
+  public byte[] modListData;
 
   private final ArrayList<Integer> listenerList = new ArrayList();
   private Continuation whenComplete;
@@ -54,7 +57,7 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
         player.getConnection().close();
         return true;
       }
-      modListData = Optional.of(packet.content().retain());
+      modListData = ByteBufUtil.getBytes(packet.content());
     }
     if (listenerList.isEmpty()) {
       whenComplete.resume();
