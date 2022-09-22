@@ -10,6 +10,7 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
@@ -39,7 +40,7 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
   public byte[] modListData;
 
   private final ArrayList<Integer> listenerList = new ArrayList();
-  public ArrayList<LoginPluginMessage> packagesToSendAfterReset = new ArrayList<>();
+  public ArrayList<MinecraftPacket> packagesToSendAfterReset = new ArrayList<>();
   private Runnable whenComplete;
   public boolean isReady = false;
   @Override
@@ -48,7 +49,7 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
     final MinecraftConnection connection = player.getConnection();
     VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player);
     if(handshake == null) {
-      connection.delayedWrite(new LoginPluginMessage(0,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateEmptyModlist())));
+      connection.delayedWrite(new LoginPluginMessage(0,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.emptyModlist)));
       listenerList.add(0);
     } else {
       connection.delayedWrite(new LoginPluginMessage(0,"fml:loginwrapper", Unpooled.wrappedBuffer(handshake.modListPacket)));
@@ -69,7 +70,8 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
       return true;
     }
     if (packet.getId() == 98) {
-      for (LoginPluginMessage packet1 : packagesToSendAfterReset) {
+      isReady = true;
+      for (MinecraftPacket packet1 : packagesToSendAfterReset) {
         player.getConnection().delayedWrite(packet1);
       }
       packagesToSendAfterReset = new ArrayList<>();
@@ -88,7 +90,7 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
     }
     return true;
   }
-  public void reset(ConnectedPlayer player,MinecraftConnection connection, byte[] serverModlist) {
+  public void reset(ConnectedPlayer player,MinecraftConnection connection) {
     isReady = false;
     if (player.getConnectedServer() != null) {
       player.getConnectedServer().disconnect();
@@ -96,11 +98,23 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
     connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player));
     connection.write(new PluginMessage("fml:handshake",Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
     listenerList.add(98);
-    send(player,new LoginPluginMessage(0,"fml:loginwrapper",Unpooled.wrappedBuffer(serverModlist)));
-    listenerList.add(0);
     connection.setState(StateRegistry.LOGIN);
   }
-  public void send(ConnectedPlayer player, LoginPluginMessage message) {
+  public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
+    VelocityConfiguration configuration = (VelocityConfiguration) server.getConfiguration();
+    UUID playerUniqueId = player.getUniqueId();
+    if (configuration.getPlayerInfoForwardingMode() == PlayerInfoForwarding.NONE) {
+      playerUniqueId = UuidUtils.generateOfflinePlayerUuid(player.getUsername());
+    }
+    ServerLoginSuccess success = new ServerLoginSuccess();
+    success.setUsername(player.getUsername());
+    success.setUuid(playerUniqueId);
+    send(player,success);
+
+    connection.setState(StateRegistry.PLAY);
+    connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
+  }
+  public void send(ConnectedPlayer player, MinecraftPacket message) {
     if (isReady) {
       player.getConnection().write(message);
     } else {

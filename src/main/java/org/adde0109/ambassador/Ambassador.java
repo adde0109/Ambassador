@@ -72,6 +72,9 @@ public class Ambassador {
   private void inject() throws ReflectiveOperationException {
     Field cmField = VelocityServer.class.getDeclaredField("cm");
     cmField.setAccessible(true);
+    Field endpointMap = ConnectionManager.class.getDeclaredField("endpoints");
+    endpointMap.setAccessible(true);
+
     ChannelInitializer<?> original = ((ConnectionManager) cmField.get(server)).serverChannelInitializer.get();
     ((ConnectionManager) cmField.get(server)).serverChannelInitializer.set(new VelocityServerChannelInitializer(original));
   }

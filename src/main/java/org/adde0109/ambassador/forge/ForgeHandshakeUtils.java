@@ -88,7 +88,8 @@ public class ForgeHandshakeUtils {
     return dataAndPacketIdStream.toByteArray();
   }
 
-  public static byte[] generateEmptyModlist() {
+  public static final byte[] emptyModlist = generateEmptyModlist();
+  private static byte[] generateEmptyModlist() {
     ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
     writeVarInt(dataAndPacketIdStream,1);
     writeVarInt(dataAndPacketIdStream,0);
@@ -103,20 +104,6 @@ public class ForgeHandshakeUtils {
     return stream.toByteArray();
   }
 
-  static public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
-    VelocityConfiguration configuration = (VelocityConfiguration) server.getConfiguration();
-    UUID playerUniqueId = player.getUniqueId();
-    if (configuration.getPlayerInfoForwardingMode() == PlayerInfoForwarding.NONE) {
-      playerUniqueId = UuidUtils.generateOfflinePlayerUuid(player.getUsername());
-    }
-    ServerLoginSuccess success = new ServerLoginSuccess();
-    success.setUsername(player.getUsername());
-    success.setUuid(playerUniqueId);
-    connection.write(success);
-
-    connection.setState(StateRegistry.PLAY);
-    connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
-  }
 
   public static final byte[] ACKPacket = generateACKPacket();
   private static byte[] generateACKPacket() {

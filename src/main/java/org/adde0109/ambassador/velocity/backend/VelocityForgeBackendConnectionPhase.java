@@ -1,5 +1,6 @@
 package org.adde0109.ambassador.velocity.backend;
 
+import com.velocitypowered.proxy.Velocity;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
@@ -21,42 +22,26 @@ import java.util.List;
 public class VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
 
   private final Ambassador ambassador;
-  private final List<byte[]> handshakeMessages = new ArrayList<>();
+  private boolean vanilla = true;
 
   public VelocityForgeBackendConnectionPhase(Ambassador ambassador) {
     this.ambassador = ambassador;
   }
 
-  public void handleSuccess(VelocityServerConnection serverCon) {
-    ForgeHandshakeUtils.complete((VelocityServer) ambassador.server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
-    //((ForgeFML2ClientConnectionPhase) serverCon.getPlayer().getPhase()).reset(serverCon.getPlayer(),serverCon.getPlayer().getConnection(), handshakeMessages,
-    //        () -> ForgeHandshakeUtils.complete((VelocityServer) ambassador.server,serverCon.getPlayer(),serverCon.getPlayer().getConnection()));
-  }
-
-  public byte[] generateResponse(ConnectedPlayer player, ByteBuf content) {
-    content.readBytes(14);  //Channel Identifier
-    ProtocolUtils.readVarInt(content); //Length
-    int packetID = ProtocolUtils.readVarInt(content);
-
-
-    switch (packetID) {
-
-      case 1:
-        final byte[] data = ((ForgeFML2ClientConnectionPhase) player.getPhase()).modListData;
-        return data;
-
-      default:
-        return ForgeHandshakeUtils.ACKPacket;
+  public void handleSuccess(VelocityServerConnection serverCon, VelocityServer server) {
+    ForgeFML2ClientConnectionPhase clientPhase = ((ForgeFML2ClientConnectionPhase) serverCon.getPlayer().getPhase());
+    if (vanilla) {
+      clientPhase.reset(serverCon.getPlayer(),serverCon.getPlayer().getConnection());
     }
+    clientPhase.complete((VelocityServer) ambassador.server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
   }
 
   public boolean handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) {
-    if (!message.getChannel().equals("fml:loginwrapper") || !(player.getPhase() instanceof VelocityForgeClientConnectionPhase)) {
-      return false;
-    }
+    vanilla = false;
     message.retain();
     ((ForgeFML2ClientConnectionPhase) player.getPhase()).send(player,message);
     return true;
   }
+
 
 }
