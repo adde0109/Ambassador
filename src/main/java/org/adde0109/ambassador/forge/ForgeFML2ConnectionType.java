@@ -20,7 +20,7 @@ public class ForgeFML2ConnectionType implements ConnectionType {
 
   @Override
   public BackendConnectionPhase getInitialBackendPhase() {
-    return BackendConnectionPhases.UNKNOWN;
+    return new VelocityForgeBackendConnectionPhase();
   }
 
   @Override

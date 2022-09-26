@@ -20,6 +20,7 @@ import org.adde0109.ambassador.forge.ForgeConnection;
 import org.adde0109.ambassador.forge.ForgeHandshakeHandler;
 import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.forge.ForgeServerSwitchHandler;
+import org.adde0109.ambassador.velocity.VelocityBackendChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityServerChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityEventHandler;
 import org.bstats.charts.SingleLineChart;
@@ -28,7 +29,7 @@ import org.slf4j.Logger;
 
 import java.nio.file.Path;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "1.0.0-alpha", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "1.0.2-alpha", authors = {"adde0109"})
 public class Ambassador {
 
   public ProxyServer server;
@@ -72,11 +73,12 @@ public class Ambassador {
   private void inject() throws ReflectiveOperationException {
     Field cmField = VelocityServer.class.getDeclaredField("cm");
     cmField.setAccessible(true);
-    Field endpointMap = ConnectionManager.class.getDeclaredField("endpoints");
-    endpointMap.setAccessible(true);
 
     ChannelInitializer<?> original = ((ConnectionManager) cmField.get(server)).serverChannelInitializer.get();
     ((ConnectionManager) cmField.get(server)).serverChannelInitializer.set(new VelocityServerChannelInitializer(original));
+
+    ChannelInitializer<?> originalBackend = ((ConnectionManager) cmField.get(server)).backendChannelInitializer.get();
+    ((ConnectionManager) cmField.get(server)).backendChannelInitializer.set(new VelocityBackendChannelInitializer(originalBackend,(VelocityServer) server));
   }
 
   @Subscribe
