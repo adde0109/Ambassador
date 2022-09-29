@@ -19,6 +19,7 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
 import org.checkerframework.checker.units.qual.A;
@@ -45,13 +46,10 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
   public void handleLogin(ConnectedPlayer player,ForgeHandshakeUtils.CachedServerHandshake handshake, Continuation continuation) {
     final MinecraftConnection connection = player.getConnection();
     VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(), player);
-    if (handshake == null) {
-      connection.delayedWrite(new LoginPluginMessage(98, "fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
-      listenerList.add(98);
-      this.whenComplete = () -> {
-        this.clientPhase = ClientPhase.VANILLA;
-        continuation.resume();
-      };
+    //Without initial modlist for now
+    if (true) {
+      connection.delayedWrite(new LoginPluginMessage(0, "fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.emptyModlist)));
+      listenerList.add(0);
     } else {
       connection.delayedWrite(new LoginPluginMessage(0, "fml:loginwrapper", Unpooled.wrappedBuffer(handshake.modListPacket)));
       listenerList.add(0);
@@ -59,11 +57,11 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
         connection.delayedWrite(new LoginPluginMessage(i + 1, "fml:loginwrapper", Unpooled.wrappedBuffer(handshake.otherPackets.get(i))));
         listenerList.add(i + 1);
       }
-      this.whenComplete = () -> {
-        this.clientPhase = ClientPhase.MODDED;
-        continuation.resume();
-      };
     }
+    this.whenComplete = () -> {
+      this.clientPhase = ClientPhase.MODDED;
+      continuation.resume();
+    };
     connection.setSessionHandler(sessionHandler);
     connection.flush();
   }
@@ -72,9 +70,11 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
   public boolean handle(ConnectedPlayer player, LoginPluginResponse packet) {
     if (packet.getId() == 98) {
       this.clientPhase = ClientPhase.HANDSHAKE;
-      this.isResettable = packet.isSuccess();
     } else if (packet.getId() == 0) {
       this.clientPhase = ClientPhase.MODLIST;
+      if (modListData == null) {
+        modListData = ByteBufUtil.getBytes(packet.content());
+      }
     }
     if (!listenerList.removeIf(id -> id.equals(packet.getId()))) {
       player.getConnectionInFlight().getConnection().write(packet.retain());

@@ -13,7 +13,7 @@ import java.util.List;
 
 public class VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
 
-  private final List<LoginPluginMessage> queuedHandshakePackets = new ArrayList<>();
+  private List<LoginPluginMessage> queuedHandshakePackets = new ArrayList<>();
 
   public VelocityForgeBackendConnectionPhase() {
   }
@@ -34,7 +34,9 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
           player.getConnection().delayedWrite(msg);
         }
         player.getConnection().flush();
+        queuedHandshakePackets = null;
       });
+      queuedHandshakePackets = new ArrayList<>();
       queuedHandshakePackets.add(message);
     } else if (clientPhase.clientPhase != null) {
       player.getConnection().write(message);

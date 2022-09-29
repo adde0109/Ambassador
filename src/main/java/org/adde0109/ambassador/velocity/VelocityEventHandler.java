@@ -36,7 +36,7 @@ public class VelocityEventHandler {
       continuation.resume();
       return;
     }
-    ambassador.forgeHandshakeHandler.handleLogin(player,continuation);
+    phase.handleLogin(player,null,continuation);
   }
 
   /*@Subscribe
