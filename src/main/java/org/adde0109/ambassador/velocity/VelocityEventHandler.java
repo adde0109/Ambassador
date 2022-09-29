@@ -36,35 +36,6 @@ public class VelocityEventHandler {
       continuation.resume();
       return;
     }
-    phase.handleLogin(player,null,continuation);
+    player.getConnection().eventLoop().submit(() -> phase.handleLogin(player,null,continuation));
   }
-
-  /*@Subscribe
-  public void onServerLoginPluginMessageEvent(ServerLoginPluginMessageEvent event, Continuation continuation) {
-    if (!Objects.equals(event.getIdentifier().getId(), "fml:loginwrapper") || !(((ConnectedPlayer)event.getConnection().getPlayer()).getPhase() instanceof VelocityForgeClientConnectionPhase)) {
-      continuation.resume();
-      return;
-    }
-    final VelocityServerConnection serverCon = (VelocityServerConnection) event.getConnection();
-    final MinecraftConnection connection = serverCon.getConnection();
-    if (connection == null) {
-      //This should never happen.
-      continuation.resumeWithException(new NullPointerException());
-      return;
-    }
-    connection.eventLoop().submit(() -> {
-      if (event.getSequenceId() == 0) {
-        connection.setType(new ForgeFML2ConnectionType());
-        serverCon.setConnectionPhase(new VelocityForgeBackendConnectionPhase(ambassador));
-        byte[] response = ((VelocityForgeBackendConnectionPhase)serverCon.getPhase()).generateResponse(serverCon.getPlayer(), Unpooled.wrappedBuffer(event.getContents()));
-        event.setResult(ServerLoginPluginMessageEvent.ResponseResult.reply(response));
-        MinecraftSessionHandler sessionHandler = new VelocityForgeBackendHandshakeHandler(connection.getSessionHandler(),serverCon);
-        connection.setSessionHandler(sessionHandler);
-        ((ForgeFML2ClientConnectionPhase) serverCon.getPlayer().getPhase()).reset(serverCon.getPlayer(), serverCon.getPlayer().getConnection(),event.getContents());
-      } else {
-        ((ForgeFML2ClientConnectionPhase) serverCon.getPlayer().getPhase()).send(serverCon.getPlayer(), new LoginPluginMessage(event.getSequenceId(),event.getIdentifier().getId(),Unpooled.wrappedBuffer(event.getContents())));
-      }
-      continuation.resume();
-    });
-  }*/
 }
