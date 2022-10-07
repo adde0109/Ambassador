@@ -1,43 +1,33 @@
 package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.api.event.Continuation;
-import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.event.player.KickedFromServerEvent;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.util.UuidUtils;
-import com.velocitypowered.proxy.Velocity;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
-import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
-import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
-import org.checkerframework.checker.units.qual.A;
-import org.checkerframework.checker.units.qual.C;
 
-import javax.annotation.Nullable;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.*;
 
 public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnectionPhase {
   private boolean isResettable;
 
   //TODO: Use modData inside ConnectedPlayer instead
   public byte[] modListData;
+  private RegisteredServer backupServer;
 
   private final ArrayList<Integer> listenerList = new ArrayList();
   private Runnable whenComplete;
@@ -87,6 +77,7 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
   public void reset(ConnectedPlayer player, Runnable whenComplete) {
     this.whenComplete = whenComplete;
     if (player.getConnectedServer() != null) {
+      backupServer = player.getConnectedServer().getServer();
       player.getConnectedServer().disconnect();
     }
     MinecraftConnection connection = player.getConnection();
@@ -116,8 +107,12 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
     connection.setState(StateRegistry.PLAY);
     connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
   }
-  public void send(ConnectedPlayer player, MinecraftPacket message) {
-      player.getConnection().write(message);
+
+  public void handleKick(KickedFromServerEvent event) {
+    if (backupServer != null) {
+      net.kyori.adventure.text.Component reason = event.getServerKickReason().orElse(null);
+      event.setResult(KickedFromServerEvent.RedirectPlayer.create(backupServer,reason));
+    }
   }
 
   public enum ClientPhase {

@@ -3,18 +3,10 @@ package org.adde0109.ambassador.velocity;
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
-import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
-import com.velocitypowered.proxy.connection.MinecraftConnection;
-import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
-import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
+import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
-import io.netty.buffer.Unpooled;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.ForgeFML2ClientConnectionPhase;
-import org.adde0109.ambassador.forge.ForgeFML2ConnectionType;
-import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendConnectionPhase;
-import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendHandshakeHandler;
 
 import java.util.Objects;
 
@@ -37,5 +29,13 @@ public class VelocityEventHandler {
       return;
     }
     player.getConnection().eventLoop().submit(() -> phase.handleLogin(player,null,continuation));
+  }
+
+  @Subscribe
+  public void onKickedFromServerEvent(KickedFromServerEvent event, Continuation continuation) {
+    if (((ConnectedPlayer) event.getPlayer()).getPhase() instanceof ForgeFML2ClientConnectionPhase phase) {
+      phase.handleKick(event);
+    }
+    continuation.resume();
   }
 }
