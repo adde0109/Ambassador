@@ -109,7 +109,7 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
   }
 
   public void handleKick(KickedFromServerEvent event) {
-    if (backupServer != null) {
+    if (backupServer != null && !(event.getResult() instanceof KickedFromServerEvent.RedirectPlayer)) {
       net.kyori.adventure.text.Component reason = event.getServerKickReason().orElse(null);
       event.setResult(KickedFromServerEvent.RedirectPlayer.create(backupServer,reason));
     }

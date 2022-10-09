@@ -1,6 +1,7 @@
 package org.adde0109.ambassador.velocity;
 
 import com.velocitypowered.api.event.Continuation;
+import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
@@ -31,7 +32,7 @@ public class VelocityEventHandler {
     player.getConnection().eventLoop().submit(() -> phase.handleLogin(player,null,continuation));
   }
 
-  @Subscribe
+  @Subscribe(order = PostOrder.LAST)
   public void onKickedFromServerEvent(KickedFromServerEvent event, Continuation continuation) {
     if (((ConnectedPlayer) event.getPlayer()).getPhase() instanceof ForgeFML2ClientConnectionPhase phase) {
       phase.handleKick(event);
