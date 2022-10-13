@@ -25,7 +25,8 @@ public class ForgeFML2ConnectionType implements ConnectionType {
 
   @Override
   public GameProfile addGameProfileTokensIfRequired(GameProfile original, PlayerInfoForwarding forwardingType) {
-    original.addProperties(Collections.singleton(new GameProfile.Property("extraData", "\1FML2\1", "")));
+    if (forwardingType == PlayerInfoForwarding.LEGACY)
+      original.addProperties(Collections.singleton(new GameProfile.Property("extraData", "\1FML2\1", "")));
     return original;
   }
 }

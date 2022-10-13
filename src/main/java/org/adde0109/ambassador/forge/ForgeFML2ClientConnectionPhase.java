@@ -79,6 +79,7 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
     if (player.getConnectedServer() != null) {
       backupServer = player.getConnectedServer().getServer();
       player.getConnectedServer().disconnect();
+      player.setConnectedServer(null);
     }
     MinecraftConnection connection = player.getConnection();
     connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player));
@@ -112,6 +113,7 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
     if (backupServer != null && !(event.getResult() instanceof KickedFromServerEvent.RedirectPlayer)) {
       net.kyori.adventure.text.Component reason = event.getServerKickReason().orElse(null);
       event.setResult(KickedFromServerEvent.RedirectPlayer.create(backupServer,reason));
+      backupServer = null;
     }
   }
 
