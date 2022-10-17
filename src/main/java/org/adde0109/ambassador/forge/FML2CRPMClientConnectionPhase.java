@@ -8,88 +8,73 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
+import org.adde0109.ambassador.velocity.VelocityLoginPayloadManager;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
-public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnectionPhase {
+public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnectionPhase {
   private boolean isResettable;
 
   //TODO: Use modData inside ConnectedPlayer instead
   public byte[] modListData;
   private RegisteredServer backupServer;
 
-  private final ArrayList<Integer> listenerList = new ArrayList();
-  private Runnable whenComplete;
+  private VelocityLoginPayloadManager payloadManager;
   public ClientPhase clientPhase = ClientPhase.HANDSHAKE;
   @Override
-  public void handleLogin(ConnectedPlayer player,ForgeHandshakeUtils.CachedServerHandshake handshake, Continuation continuation) {
+  public void handleLogin(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
     final MinecraftConnection connection = player.getConnection();
+    payloadManager = new VelocityLoginPayloadManager(connection);
     VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(), player);
-    //Without initial modlist for now
-    if (true) {
-      connection.delayedWrite(new LoginPluginMessage(0, "fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.emptyModlist)));
-      listenerList.add(0);
-    } else {
-      connection.delayedWrite(new LoginPluginMessage(0, "fml:loginwrapper", Unpooled.wrappedBuffer(handshake.modListPacket)));
-      listenerList.add(0);
-      for (int i = 0; i < handshake.otherPackets.size(); i++) {
-        connection.delayedWrite(new LoginPluginMessage(i + 1, "fml:loginwrapper", Unpooled.wrappedBuffer(handshake.otherPackets.get(i))));
-        listenerList.add(i + 1);
-      }
-    }
-    this.whenComplete = () -> {
+    payloadManager.sendPayload("fml:loginwrapper",Unpooled.wrappedBuffer(ForgeHandshakeUtils.emptyModlist)).thenAccept((data) -> {
+      if (modListData == null)
+        modListData = ByteBufUtil.getBytes(data);
       this.clientPhase = ClientPhase.MODDED;
       continuation.resume();
-    };
+    });
     connection.setSessionHandler(sessionHandler);
     connection.flush();
   }
 
   @Override
   public boolean handle(ConnectedPlayer player, LoginPluginResponse packet) {
-    if (packet.getId() == 98) {
-      this.clientPhase = ClientPhase.HANDSHAKE;
-    } else if (packet.getId() == 0) {
-      this.clientPhase = ClientPhase.MODLIST;
-      if (modListData == null) {
-        modListData = ByteBufUtil.getBytes(packet.content());
-      }
-    }
-    if (!listenerList.removeIf(id -> id.equals(packet.getId()))) {
-      player.getConnectionInFlight().getConnection().write(packet.retain());
-    } else if (listenerList.isEmpty() && whenComplete != null) {
-      whenComplete.run();
-      whenComplete = null;
-    }
     return true;
   }
   public void reset(ConnectedPlayer player, Runnable whenComplete) {
-    this.whenComplete = whenComplete;
     if (player.getConnectedServer() != null) {
       backupServer = player.getConnectedServer().getServer();
       player.getConnectedServer().disconnect();
       player.setConnectedServer(null);
     }
+
     MinecraftConnection connection = player.getConnection();
     connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player));
+
     if (connection.getState() == StateRegistry.LOGIN) {
-      connection.write(new LoginPluginMessage(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
+      payloadManager.sendPayload("fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket()));
     } else {
       connection.write(new PluginMessage("fml:handshake",Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
       connection.setState(StateRegistry.LOGIN);
     }
-    listenerList.add(98);
+    payloadManager.listenFor(98).thenAccept((ignored) -> {
+      this.clientPhase = ClientPhase.HANDSHAKE;
+      whenComplete.run();
+    });
+
     this.clientPhase = null;
   }
   public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
@@ -115,6 +100,18 @@ public class ForgeFML2ClientConnectionPhase implements VelocityForgeClientConnec
       event.setResult(KickedFromServerEvent.RedirectPlayer.create(backupServer,reason));
       backupServer = null;
     }
+  }
+
+  public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
+    payloadManager.sendPayload("fml:loginwrapper",payload.content()).thenAccept((responseData) -> {
+      //Move this to the backend. Backend should have its own forwarder.
+      serverConnection.getConnection().write(new LoginPluginResponse(payload.getId(),responseData.isReadable(),responseData.retain()));
+    });
+  }
+
+  @Override
+  public VelocityLoginPayloadManager getPayloadManager() {
+    return payloadManager;
   }
 
   public enum ClientPhase {

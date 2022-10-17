@@ -10,9 +10,7 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 import org.adde0109.ambassador.forge.ForgeConstants;
-import org.adde0109.ambassador.forge.ForgeFML2ClientConnectionPhase;
-
-import java.util.concurrent.CountDownLatch;
+import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 
 public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
 
@@ -24,24 +22,26 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-    if ((msg instanceof ServerLogin)) {
+  public void flush(ChannelHandlerContext ctx) throws Exception {
+    if (serverConnection != null){
+      ctx.flush();
+      return;
+    }
       ChannelHandler handler = ctx.pipeline().get(Connections.HANDLER);
       if (handler instanceof MinecraftConnection connection) {
         if (connection.getAssociation() instanceof VelocityServerConnection serverConnection) {
-          if (serverConnection.getPlayer().getPhase() instanceof ForgeFML2ClientConnectionPhase phase) {
+          if (serverConnection.getPlayer().getPhase() instanceof FML2CRPMClientConnectionPhase phase) {
             init(connection,serverConnection);
-            if (phase.clientPhase == ForgeFML2ClientConnectionPhase.ClientPhase.MODDED) {
+            if (phase.clientPhase == FML2CRPMClientConnectionPhase.ClientPhase.MODDED) {
               phase.reset(serverConnection.getPlayer(), () -> {
-                ctx.write(msg, promise);
                 ctx.flush();
               });
             } else {
-              ctx.write(msg,promise);
+              ctx.flush();
             }
           } else {
             ctx.pipeline().remove(this);
-            ctx.write(msg,promise);
+            ctx.flush();
           }
         } else {
           throw new Exception("Connection not associated with a server connection");
@@ -49,9 +49,6 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
       } else {
         throw new Exception("Default minecraft packet handler not found");
       }
-    } else {
-      ctx.write(msg,promise);
-    }
   }
 
   @Override
@@ -61,6 +58,7 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
       ReferenceCountUtil.release(msg);
     } else if (msg instanceof ServerLoginSuccess) {
       ((VelocityForgeBackendConnectionPhase) serverConnection.getPhase()).handleSuccess(serverConnection,server);
+      ctx.pipeline().remove(this);
       ctx.fireChannelRead(msg);
     } else {
       ctx.fireChannelRead(msg);

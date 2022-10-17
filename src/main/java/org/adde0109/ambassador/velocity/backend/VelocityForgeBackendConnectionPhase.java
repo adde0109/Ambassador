@@ -4,9 +4,8 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
-import org.adde0109.ambassador.forge.ForgeFML2ClientConnectionPhase;
+import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,19 +18,19 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
   }
 
   public void handleSuccess(VelocityServerConnection serverCon, VelocityServer server) {
-    ForgeFML2ClientConnectionPhase clientPhase = ((ForgeFML2ClientConnectionPhase) serverCon.getPlayer().getPhase());
-    if (clientPhase.clientPhase == ForgeFML2ClientConnectionPhase.ClientPhase.HANDSHAKE || clientPhase.clientPhase == ForgeFML2ClientConnectionPhase.ClientPhase.MODLIST) {
+    FML2CRPMClientConnectionPhase clientPhase = ((FML2CRPMClientConnectionPhase) serverCon.getPlayer().getPhase());
+    if (clientPhase.clientPhase == FML2CRPMClientConnectionPhase.ClientPhase.HANDSHAKE || clientPhase.clientPhase == FML2CRPMClientConnectionPhase.ClientPhase.MODLIST) {
       clientPhase.complete((VelocityServer) server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
     }
   }
 
   public boolean handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) throws Exception {
-    ForgeFML2ClientConnectionPhase clientPhase = ((ForgeFML2ClientConnectionPhase) player.getPhase());
+    FML2CRPMClientConnectionPhase clientPhase = ((FML2CRPMClientConnectionPhase) player.getPhase());
     message.retain();
-    if (clientPhase.clientPhase == ForgeFML2ClientConnectionPhase.ClientPhase.VANILLA) {
+    if (clientPhase.clientPhase == FML2CRPMClientConnectionPhase.ClientPhase.VANILLA) {
       clientPhase.reset(player, () -> {
         for (LoginPluginMessage msg: queuedHandshakePackets) {
-          player.getConnection().delayedWrite(msg);
+          clientPhase.forwardPayload(server,msg);
         }
         player.getConnection().flush();
         queuedHandshakePackets = null;
@@ -39,7 +38,7 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
       queuedHandshakePackets = new ArrayList<>();
       queuedHandshakePackets.add(message);
     } else if (clientPhase.clientPhase != null) {
-      player.getConnection().write(message);
+      clientPhase.forwardPayload(server,message);
     } else {
       queuedHandshakePackets.add(message);
     }
