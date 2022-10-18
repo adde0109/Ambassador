@@ -10,6 +10,7 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
@@ -18,16 +19,19 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import net.kyori.adventure.identity.Identity;
+import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
 import org.adde0109.ambassador.velocity.VelocityLoginPayloadManager;
 
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnectionPhase {
-  private boolean isResettable;
+  private static String OUTBOUND_CATCHER_NAME = "ambassador-catcher";
 
   //TODO: Use modData inside ConnectedPlayer instead
   public byte[] modListData;
@@ -64,6 +68,7 @@ public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnect
     MinecraftConnection connection = player.getConnection();
     connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player));
 
+
     if (connection.getState() == StateRegistry.LOGIN) {
       payloadManager.sendPayload("fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket()));
     } else {
@@ -76,6 +81,7 @@ public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnect
     });
 
     this.clientPhase = null;
+    connection.getChannel().pipeline().addBefore(Connections.HANDLER,OUTBOUND_CATCHER_NAME,new FML2CRPMOutgoingCatcher());
   }
   public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
     VelocityConfiguration configuration = (VelocityConfiguration) server.getConfiguration();
@@ -92,6 +98,10 @@ public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnect
 
     connection.setState(StateRegistry.PLAY);
     connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
+    try {
+      connection.getChannel().pipeline().remove(OUTBOUND_CATCHER_NAME);
+    } catch (NoSuchElementException ignored) {
+    }
   }
 
   public void handleKick(KickedFromServerEvent event) {
