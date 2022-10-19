@@ -13,7 +13,7 @@ public class ForgeFML2ConnectionType implements ConnectionType {
 
   @Override
   public ClientConnectionPhase getInitialClientPhase() {
-    return new FML2CRPMClientConnectionPhase();
+    return new FML2ClientConnectionPhase();
   }
 
   @Override

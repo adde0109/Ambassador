@@ -33,7 +33,7 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
           if (serverConnection.getPlayer().getPhase() instanceof FML2CRPMClientConnectionPhase phase) {
             init(connection,serverConnection);
             if (phase.clientPhase == FML2CRPMClientConnectionPhase.ClientPhase.MODDED) {
-              phase.reset(serverConnection.getPlayer(), () -> {
+              phase.reset(serverConnection ,serverConnection.getPlayer(), () -> {
                 ctx.flush();
               });
             } else {

@@ -30,7 +30,7 @@ public class VelocityEventHandler {
       continuation.resume();
       return;
     }
-    player.getConnection().eventLoop().submit(() -> phase.handleLogin(player, (VelocityServer) ambassador.server,continuation));
+    player.getConnection().eventLoop().submit(() -> phase.fireLoginEvent(player, (VelocityServer) ambassador.server,continuation));
   }
 
   @Subscribe(order = PostOrder.LAST)

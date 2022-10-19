@@ -30,21 +30,17 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnectionPhase {
+public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnectionPhase {
   private static String OUTBOUND_CATCHER_NAME = "ambassador-catcher";
 
   //TODO: Use modData inside ConnectedPlayer instead
   public byte[] modListData;
   private RegisteredServer backupServer;
-
-  private VelocityLoginPayloadManager payloadManager;
-  public ClientPhase clientPhase = ClientPhase.HANDSHAKE;
   @Override
   public void handleLogin(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
     final MinecraftConnection connection = player.getConnection();
-    payloadManager = new VelocityLoginPayloadManager(connection);
     VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(), player);
-    payloadManager.sendPayload("fml:loginwrapper",Unpooled.wrappedBuffer(ForgeHandshakeUtils.emptyModlist)).thenAccept((data) -> {
+    getPayloadManager().sendPayload("fml:loginwrapper",Unpooled.wrappedBuffer(ForgeHandshakeUtils.emptyModlist)).thenAccept((data) -> {
       if (modListData == null)
         modListData = ByteBufUtil.getBytes(data);
       this.clientPhase = ClientPhase.MODDED;
@@ -54,11 +50,7 @@ public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnect
     connection.flush();
   }
 
-  @Override
-  public boolean handle(ConnectedPlayer player, LoginPluginResponse packet) {
-    return true;
-  }
-  public void reset(ConnectedPlayer player, Runnable whenComplete) {
+  public void reset(VelocityServerConnection serverConnection, ConnectedPlayer player, Runnable whenComplete) {
     if (player.getConnectedServer() != null) {
       backupServer = player.getConnectedServer().getServer();
       player.getConnectedServer().disconnect();
@@ -70,12 +62,12 @@ public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnect
 
 
     if (connection.getState() == StateRegistry.LOGIN) {
-      payloadManager.sendPayload("fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket()));
+      getPayloadManager().sendPayload("fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket()));
     } else {
       connection.write(new PluginMessage("fml:handshake",Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
       connection.setState(StateRegistry.LOGIN);
     }
-    payloadManager.listenFor(98).thenAccept((ignored) -> {
+    getPayloadManager().listenFor(98).thenAccept((ignored) -> {
       this.clientPhase = ClientPhase.HANDSHAKE;
       whenComplete.run();
     });
@@ -112,22 +104,4 @@ public class FML2CRPMClientConnectionPhase implements VelocityForgeClientConnect
     }
   }
 
-  public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
-    payloadManager.sendPayload("fml:loginwrapper",payload.content()).thenAccept((responseData) -> {
-      //Move this to the backend. Backend should have its own forwarder.
-      serverConnection.getConnection().write(new LoginPluginResponse(payload.getId(),responseData.isReadable(),responseData.retain()));
-    });
-  }
-
-  @Override
-  public VelocityLoginPayloadManager getPayloadManager() {
-    return payloadManager;
-  }
-
-  public enum ClientPhase {
-    VANILLA,
-    HANDSHAKE,
-    MODLIST,
-    MODDED
-  }
 }
