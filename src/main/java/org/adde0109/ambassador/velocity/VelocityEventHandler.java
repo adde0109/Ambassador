@@ -2,11 +2,14 @@ package org.adde0109.ambassador.velocity;
 
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.PostOrder;
+import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
+import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
+import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import org.adde0109.ambassador.Ambassador;
@@ -38,6 +41,34 @@ public class VelocityEventHandler {
     if (((ConnectedPlayer) event.getPlayer()).getPhase() instanceof FML2CRPMClientConnectionPhase phase) {
       phase.handleKick(event);
     }
+    continuation.resume();
+  }
+
+  @Subscribe(order = PostOrder.FIRST)
+  public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
+    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
+    if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
+      continuation.resume();
+      return;
+    }
+    if (phase.internalServerConnection != null) {
+      event.setResult(ServerPreConnectEvent.ServerResult.denied());
+      phase.internalServerConnection = null;
+    }
+    continuation.resume();
+  }
+
+  @Subscribe(order = PostOrder.LAST)
+  public void onPlayerChooseInitialServerEvent(PlayerChooseInitialServerEvent event, Continuation continuation) {
+    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
+    if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
+      continuation.resume();
+      return;
+    }
+    if (phase.forced != null)
+      event.setInitialServer(phase.forced);
+    if (event.getInitialServer().isEmpty())
+      event.setInitialServer(phase.internalServerConnection.getServer());
     continuation.resume();
   }
 }

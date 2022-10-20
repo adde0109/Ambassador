@@ -1,6 +1,8 @@
 package org.adde0109.ambassador.velocity;
 
 import com.velocitypowered.api.event.Continuation;
+import com.velocitypowered.api.proxy.ServerConnection;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -9,17 +11,24 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
-import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
 
 public abstract class VelocityForgeClientConnectionPhase implements ClientConnectionPhase {
   //TODO:Make class when PCF is done
 
 
   VelocityLoginPayloadManager payloadManager;
-  public FML2CRPMClientConnectionPhase.ClientPhase clientPhase = ClientPhase.HANDSHAKE;
+  public VelocityForgeClientConnectionPhase.ClientPhase clientPhase = ClientPhase.HANDSHAKE;
+
+  public ServerConnection internalServerConnection;
+  public RegisteredServer forced;
+
+  protected VelocityForgeClientConnectionPhase(ClientPhase clientPhase, VelocityLoginPayloadManager payloadManager) {
+    this.clientPhase = clientPhase;
+    this.payloadManager = payloadManager;
+  }
+  protected VelocityForgeClientConnectionPhase() {
+
+  }
 
   public void handleLogin(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
   }
@@ -34,6 +43,9 @@ public abstract class VelocityForgeClientConnectionPhase implements ClientConnec
   final void fireLoginEvent(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
     payloadManager = new VelocityLoginPayloadManager(player.getConnection());
     handleLogin(player,server,continuation);
+
+    VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(), player);
+    player.getConnection().setSessionHandler(sessionHandler);
   }
 
   public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
@@ -44,6 +56,7 @@ public abstract class VelocityForgeClientConnectionPhase implements ClientConnec
       //Move this to the backend. Backend should have its own forwarder.
       serverConnection.getConnection().write(new LoginPluginResponse(payload.getId(),responseData.isReadable(),responseData.retain()));
     });
+    clientPhase = ClientPhase.MODLIST;
   }
 
   public final VelocityLoginPayloadManager getPayloadManager() {

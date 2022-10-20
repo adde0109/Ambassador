@@ -4,34 +4,39 @@ import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
-import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
-import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.connection.client.LoginSessionHandler;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityLoginPayloadManager;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhase {
+
+  private static String OUTBOUND_CATCHER_NAME = "ambassador-catcher";
 
   private static final PassiveExpiringMap<String,RegisteredServer> TEMPORARY_FORCED = new PassiveExpiringMap<>(120, TimeUnit.SECONDS);
 
   private Throwable throwable;
   private RegisteredServer triedServer;
   private Continuation continuation;
+
+  public FML2ClientConnectionPhase(VelocityForgeClientConnectionPhase.ClientPhase clientPhase, VelocityLoginPayloadManager payloadManager) {
+    super(clientPhase,payloadManager);
+  }
+  public FML2ClientConnectionPhase(){
+    super();
+  }
 
 
   @Override
@@ -50,20 +55,8 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
               });
     };
 
-    final RegisteredServer forced = TEMPORARY_FORCED.remove(player.getUsername());
-    if (forced != null) {
-      forced.ping().whenCompleteAsync((msg,ex) -> {
-        if (ex == null) {
-          if (throwable == null)
-            throwable = ex;
-          handlePingResponse(msg);
-        } else {
-          defaultTask.run();
-        }
-      },connection.eventLoop());
-    } else {
-      connection.eventLoop().submit(defaultTask);
-    }
+    forced = TEMPORARY_FORCED.remove(player.getUsername());
+    connection.eventLoop().submit(defaultTask);
   }
 
   @Override
@@ -77,6 +70,14 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
     if (triedServer != null)
       player.sendMessage(Component.translatable("velocity.error.connecting-server-error",
               Component.text(triedServer.getServerInfo().getName())));
+    if (clientPhase == ClientPhase.VANILLA) {
+      player.setPhase(new FML2CRPMClientConnectionPhase(ClientPhase.VANILLA,getPayloadManager()));
+    } else if (clientPhase == ClientPhase.MODLIST) {
+      clientPhase = ClientPhase.MODDED;
+      internalServerConnection = player.getConnectionInFlight();
+      player.resetInFlightConnection();
+      continuation.resume();
+    }
   }
 
   private void tryServer(ConnectedPlayer player, RegisteredServer server) {
@@ -89,21 +90,37 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
       if (ex != null) {
         if (throwable == null)
           throwable = ex;
-        tryServer(player,player.getNextServerToTry().orElse(null));
+        tryServer(player, player.getNextServerToTry().orElse(null));
       } else {
-        handlePingResponse(msg);
+        handlePingResponse(player, server, msg);
       }
     }, player.getConnection().eventLoop());
     }
 
-  private void handlePingResponse(ServerPing ping) {
-    if (ping.getModinfo().isEmpty() || !ping.getModinfo().get().getType().equals("Ambassador")) {
-      continuation.resume();
-      return;
+
+  @Override
+  public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
+    ByteBuf buf = payload.content().copy();
+    String channel = ProtocolUtils.readString(buf);
+    int length = ProtocolUtils.readVarInt(buf);
+    int id = ProtocolUtils.readVarInt(buf);
+    if (id == 1) {
+      String[] mods = ProtocolUtils.readStringArray(buf);
+
+      if (Arrays.stream(mods).anyMatch(s -> s.equals("clientresetpacket"))) {
+        serverConnection.getPlayer().setPhase(new FML2CRPMClientConnectionPhase(ClientPhase.VANILLA,getPayloadManager()));
+      }
     }
-    ModInfo.Mod mod = ping.getModinfo().get().getMods().get(0);
-    String data = mod.getId();
-    String markers = mod.getVersion();
+    super.forwardPayload(serverConnection, payload);
+  }
+
+  private void handlePingResponse(ConnectedPlayer player, RegisteredServer server, ServerPing ping) {
+    if (ping.getModinfo().isEmpty()) {
+      clientPhase = ClientPhase.VANILLA;
+      continuation.resume();
+    } else {
+      player.createConnectionRequest(server).fireAndForget();
+    }
 
   }
 }

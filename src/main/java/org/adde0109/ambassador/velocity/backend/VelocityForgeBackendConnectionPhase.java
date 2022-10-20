@@ -20,15 +20,13 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
 
   public void handleSuccess(VelocityServerConnection serverCon, VelocityServer server) {
     VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) serverCon.getPlayer().getPhase());
-    if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.HANDSHAKE || clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.MODLIST) {
-      clientPhase.complete((VelocityServer) server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
-    }
+    clientPhase.complete((VelocityServer) server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
   }
 
   public boolean handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) throws Exception {
-    VelocityForgeClientConnectionPhase clientPhase = ((FML2CRPMClientConnectionPhase) player.getPhase());
+    VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) player.getPhase());
     message.retain();
-    if (clientPhase.clientPhase == FML2CRPMClientConnectionPhase.ClientPhase.VANILLA) {
+    if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.VANILLA) {
       clientPhase.reset(server,player, () -> {
         for (LoginPluginMessage msg: queuedHandshakePackets) {
           clientPhase.forwardPayload(server,msg);

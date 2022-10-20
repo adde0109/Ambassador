@@ -1,6 +1,5 @@
 package org.adde0109.ambassador.forge;
 
-import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.util.UuidUtils;
@@ -12,23 +11,15 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.StateRegistry;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
-import net.kyori.adventure.identity.Identity;
-import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
 import org.adde0109.ambassador.velocity.VelocityLoginPayloadManager;
 
-import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnectionPhase {
   private static String OUTBOUND_CATCHER_NAME = "ambassador-catcher";
@@ -36,18 +27,11 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
   //TODO: Use modData inside ConnectedPlayer instead
   public byte[] modListData;
   private RegisteredServer backupServer;
-  @Override
-  public void handleLogin(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
-    final MinecraftConnection connection = player.getConnection();
-    VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(), player);
-    getPayloadManager().sendPayload("fml:loginwrapper",Unpooled.wrappedBuffer(ForgeHandshakeUtils.emptyModlist)).thenAccept((data) -> {
-      if (modListData == null)
-        modListData = ByteBufUtil.getBytes(data);
-      this.clientPhase = ClientPhase.MODDED;
-      continuation.resume();
-    });
-    connection.setSessionHandler(sessionHandler);
-    connection.flush();
+
+  public FML2CRPMClientConnectionPhase(VelocityForgeClientConnectionPhase.ClientPhase clientPhase, VelocityLoginPayloadManager payloadManager) {
+    super(clientPhase,payloadManager);
+  }
+  public FML2CRPMClientConnectionPhase() {
   }
 
   public void reset(VelocityServerConnection serverConnection, ConnectedPlayer player, Runnable whenComplete) {
@@ -67,13 +51,18 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
       connection.write(new PluginMessage("fml:handshake",Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
       connection.setState(StateRegistry.LOGIN);
     }
-    getPayloadManager().listenFor(98).thenAccept((ignored) -> {
+    getPayloadManager().listenFor(98).thenAccept((response) -> {
       this.clientPhase = ClientPhase.HANDSHAKE;
       whenComplete.run();
     });
 
     this.clientPhase = null;
-    connection.getChannel().pipeline().addBefore(Connections.HANDLER,OUTBOUND_CATCHER_NAME,new FML2CRPMOutgoingCatcher());
+    connection.getChannel().pipeline().addBefore(Connections.HANDLER,OUTBOUND_CATCHER_NAME,new FML2CRPMConnectionHandler(() -> {
+      connection.setState(StateRegistry.PLAY);
+      final FML2ClientConnectionPhase newPhase = new FML2ClientConnectionPhase(ClientPhase.HANDSHAKE,getPayloadManager());
+      player.setPhase(newPhase);
+      newPhase.reset(serverConnection,player,whenComplete);
+    }));
   }
   public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
     VelocityConfiguration configuration = (VelocityConfiguration) server.getConfiguration();

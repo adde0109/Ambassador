@@ -11,6 +11,7 @@ import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
+import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
 public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
 
@@ -30,9 +31,9 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
       ChannelHandler handler = ctx.pipeline().get(Connections.HANDLER);
       if (handler instanceof MinecraftConnection connection) {
         if (connection.getAssociation() instanceof VelocityServerConnection serverConnection) {
-          if (serverConnection.getPlayer().getPhase() instanceof FML2CRPMClientConnectionPhase phase) {
+          if (serverConnection.getPlayer().getPhase() instanceof VelocityForgeClientConnectionPhase phase) {
             init(connection,serverConnection);
-            if (phase.clientPhase == FML2CRPMClientConnectionPhase.ClientPhase.MODDED) {
+            if (phase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.MODDED) {
               phase.reset(serverConnection ,serverConnection.getPlayer(), () -> {
                 ctx.flush();
               });
