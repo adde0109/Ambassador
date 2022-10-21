@@ -20,6 +20,7 @@ import org.adde0109.ambassador.velocity.VelocityLoginPayloadManager;
 
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnectionPhase {
   private static String OUTBOUND_CATCHER_NAME = "ambassador-catcher";
@@ -34,7 +35,8 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
   public FML2CRPMClientConnectionPhase() {
   }
 
-  public void reset(VelocityServerConnection serverConnection, ConnectedPlayer player, Runnable whenComplete) {
+  public CompletableFuture<Boolean> reset(VelocityServerConnection serverConnection, ConnectedPlayer player) {
+    CompletableFuture<Boolean> future = new CompletableFuture<>();
     if (player.getConnectedServer() != null) {
       backupServer = player.getConnectedServer().getServer();
       player.getConnectedServer().disconnect();
@@ -53,16 +55,15 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     }
     getPayloadManager().listenFor(98).thenAccept((response) -> {
       this.clientPhase = ClientPhase.HANDSHAKE;
-      whenComplete.run();
+      future.complete(true);
     });
 
     this.clientPhase = null;
     connection.getChannel().pipeline().addBefore(Connections.HANDLER,OUTBOUND_CATCHER_NAME,new FML2CRPMConnectionHandler(() -> {
-      connection.setState(StateRegistry.PLAY);
-      final FML2ClientConnectionPhase newPhase = new FML2ClientConnectionPhase(ClientPhase.HANDSHAKE,getPayloadManager());
-      player.setPhase(newPhase);
-      newPhase.reset(serverConnection,player,whenComplete);
+      player.getConnection().setState(StateRegistry.PLAY);
+      future.complete(false);
     }));
+    return future;
   }
   public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
     VelocityConfiguration configuration = (VelocityConfiguration) server.getConfiguration();

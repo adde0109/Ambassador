@@ -11,6 +11,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
@@ -19,6 +20,7 @@ import org.apache.commons.collections4.map.PassiveExpiringMap;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhase {
@@ -30,13 +32,6 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
   private Throwable throwable;
   private RegisteredServer triedServer;
   private Continuation continuation;
-
-  public FML2ClientConnectionPhase(VelocityForgeClientConnectionPhase.ClientPhase clientPhase, VelocityLoginPayloadManager payloadManager) {
-    super(clientPhase,payloadManager);
-  }
-  public FML2ClientConnectionPhase(){
-    super();
-  }
 
 
   @Override
@@ -60,9 +55,17 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
   }
 
   @Override
-  public void reset(VelocityServerConnection serverConnection, ConnectedPlayer player, Runnable whenComplete) {
-    TEMPORARY_FORCED.put(player.getUsername(),serverConnection.getServer());
-    player.disconnect(Component.text("Please reconnect"));
+  public CompletableFuture<Boolean> reset(VelocityServerConnection serverConnection, ConnectedPlayer player) {
+    FML2CRPMClientConnectionPhase newPhase = new FML2CRPMClientConnectionPhase(clientPhase,getPayloadManager());
+    player.setPhase(newPhase);
+    CompletableFuture<Boolean> future = newPhase.reset(serverConnection,player);
+    future.thenAccept(success -> {
+      if (!success) {
+        TEMPORARY_FORCED.put(player.getUsername(),serverConnection.getServer());
+        player.disconnect(Component.text("Please reconnect"));
+      }
+    });
+    return future;
   }
 
   @Override
@@ -70,9 +73,7 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
     if (triedServer != null)
       player.sendMessage(Component.translatable("velocity.error.connecting-server-error",
               Component.text(triedServer.getServerInfo().getName())));
-    if (clientPhase == ClientPhase.VANILLA) {
-      player.setPhase(new FML2CRPMClientConnectionPhase(ClientPhase.VANILLA,getPayloadManager()));
-    } else if (clientPhase == ClientPhase.MODLIST) {
+    if (clientPhase == ClientPhase.MODLIST) {
       clientPhase = ClientPhase.MODDED;
       internalServerConnection = player.getConnectionInFlight();
       player.resetInFlightConnection();
@@ -99,20 +100,27 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
 
 
   @Override
-  public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
+  public void handleForward(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
     ByteBuf buf = payload.content().copy();
-    String channel = ProtocolUtils.readString(buf);
-    int length = ProtocolUtils.readVarInt(buf);
-    int id = ProtocolUtils.readVarInt(buf);
-    if (id == 1) {
-      String[] mods = ProtocolUtils.readStringArray(buf);
-
-      if (Arrays.stream(mods).anyMatch(s -> s.equals("clientresetpacket"))) {
-        serverConnection.getPlayer().setPhase(new FML2CRPMClientConnectionPhase(ClientPhase.VANILLA,getPayloadManager()));
-      }
+    ProtocolUtils.readString(buf);  //Channel
+    ProtocolUtils.readVarInt(buf);  //Length
+    if (ProtocolUtils.readVarInt(buf) == 1) {
+      getPayloadManager().listenFor(payload.getId()).thenAccept(rawResponse -> {
+        ByteBuf response = rawResponse.copy();
+        ProtocolUtils.readString(response);  //Channel
+        ProtocolUtils.readVarInt(response);  //Length
+        if (ProtocolUtils.readVarInt(response) == 2) {
+          String[] mods = ProtocolUtils.readStringArray(response);
+          if (Arrays.stream(mods).anyMatch(s -> s.equals("clientresetpacket"))) {
+            serverConnection.getPlayer().setPhase(new FML2CRPMClientConnectionPhase(clientPhase,getPayloadManager()));
+          }
+        }
+        ReferenceCountUtil.release(response);
+      });
+      ReferenceCountUtil.release(buf);
     }
-    super.forwardPayload(serverConnection, payload);
   }
+
 
   private void handlePingResponse(ConnectedPlayer player, RegisteredServer server, ServerPing ping) {
     if (ping.getModinfo().isEmpty()) {

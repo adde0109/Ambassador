@@ -12,6 +12,8 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 
+import java.util.concurrent.CompletableFuture;
+
 public abstract class VelocityForgeClientConnectionPhase implements ClientConnectionPhase {
   //TODO:Make class when PCF is done
 
@@ -27,13 +29,13 @@ public abstract class VelocityForgeClientConnectionPhase implements ClientConnec
     this.payloadManager = payloadManager;
   }
   protected VelocityForgeClientConnectionPhase() {
-
   }
 
   public void handleLogin(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
   }
 
-  public void reset(VelocityServerConnection serverConnection,ConnectedPlayer player, Runnable whenComplete) {
+  public CompletableFuture<Boolean> reset(VelocityServerConnection serverConnection, ConnectedPlayer player) {
+    return CompletableFuture.completedFuture(false);
   }
 
   public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
@@ -48,7 +50,11 @@ public abstract class VelocityForgeClientConnectionPhase implements ClientConnec
     player.getConnection().setSessionHandler(sessionHandler);
   }
 
-  public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
+  public void handleForward(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
+  }
+
+  final public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
+    handleForward(serverConnection,payload);
     if (payloadManager == null) {
       return;
     }

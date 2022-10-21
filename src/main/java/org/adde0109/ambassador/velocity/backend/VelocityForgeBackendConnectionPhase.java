@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import io.netty.util.ReferenceCountUtil;
 import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
@@ -27,11 +28,17 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
     VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) player.getPhase());
     message.retain();
     if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.VANILLA) {
-      clientPhase.reset(server,player, () -> {
-        for (LoginPluginMessage msg: queuedHandshakePackets) {
-          clientPhase.forwardPayload(server,msg);
+      clientPhase.reset(server,player).thenAccept((success) -> {
+        if (success) {
+          for (LoginPluginMessage msg: queuedHandshakePackets) {
+            ((VelocityForgeClientConnectionPhase) player.getPhase()).forwardPayload(server,msg);
+          }
+          player.getConnection().flush();
+        } else {
+          for (LoginPluginMessage msg: queuedHandshakePackets) {
+            ReferenceCountUtil.release(msg);
+          }
         }
-        player.getConnection().flush();
         queuedHandshakePackets = null;
       });
       queuedHandshakePackets = new ArrayList<>();

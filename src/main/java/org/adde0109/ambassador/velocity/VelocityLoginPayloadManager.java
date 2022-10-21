@@ -20,10 +20,9 @@ public class VelocityLoginPayloadManager {
 
   public CompletableFuture<ByteBuf> sendPayload(String channel, ByteBuf data) {
     connection.write(new LoginPluginMessage(counter,channel,data));
-    final CompletableFuture<ByteBuf> callback = new CompletableFuture<>();
-    listenerList.put(counter, callback);
+    CompletableFuture<ByteBuf> future = listenFor(counter);
     counter++;
-    return callback;
+    return future;
   }
 
   public CompletableFuture<ByteBuf> sendPayloads(String channel, List<ByteBuf> dataList) {
@@ -37,13 +36,14 @@ public class VelocityLoginPayloadManager {
     return callback;
   }
 
-  public CompletableFuture<ByteBuf> listenFor(int id) throws RuntimeException{
-    if (!listenerList.containsValue(id)) {
+  public CompletableFuture<ByteBuf> listenFor(int id) {
+    CompletableFuture<ByteBuf> value = listenerList.get(id);
+    if (value == null) {
       CompletableFuture<ByteBuf> callback = new CompletableFuture<>();
       listenerList.put(id,callback);
       return callback;
     } else {
-      throw new RuntimeException("Already listening for:" + id);
+      return value;
     }
   }
 

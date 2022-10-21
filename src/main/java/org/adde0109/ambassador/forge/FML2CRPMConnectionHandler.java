@@ -6,6 +6,7 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.util.ReferenceCountUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -23,12 +24,20 @@ public class FML2CRPMConnectionHandler extends ChannelDuplexHandler {
   public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
     final Set<Map.Entry<ChannelPromise, Object>> s = catchedPackets.entrySet();
     Iterator<Map.Entry<ChannelPromise, Object>> i = s.iterator();
-    while (catchedPackets.entrySet().iterator().hasNext()) {
-      final Map.Entry<ChannelPromise, Object> entry = i.next();
-      ctx.write(entry.getValue(),entry.getKey());
-      i.remove();
+    if (!ctx.channel().isActive()) {
+      while (catchedPackets.entrySet().iterator().hasNext()) {
+        final Map.Entry<ChannelPromise, Object> entry = i.next();
+        ReferenceCountUtil.release(entry.getValue());
+        i.remove();
+      }
+    } else {
+      while (catchedPackets.entrySet().iterator().hasNext()) {
+        final Map.Entry<ChannelPromise, Object> entry = i.next();
+        ctx.write(entry.getValue(),entry.getKey());
+        i.remove();
+      }
+      ctx.flush();
     }
-    ctx.flush();
   }
 
   @Override

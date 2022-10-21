@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'org.adde0109'
-version '1.0.7-alpha'
+version '1.0.9-alpha'
 
 repositories {
     maven {
