@@ -21,7 +21,9 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
 
   public void handleSuccess(VelocityServerConnection serverCon, VelocityServer server) {
     VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) serverCon.getPlayer().getPhase());
-    clientPhase.complete((VelocityServer) server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
+    if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.HANDSHAKE
+            || clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.MODLIST)
+      clientPhase.complete((VelocityServer) server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
   }
 
   public boolean handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) throws Exception {
