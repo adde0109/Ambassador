@@ -9,7 +9,13 @@ import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendConnectionPh
 
 import java.util.Collections;
 
-public class ForgeFML2ConnectionType implements ConnectionType {
+public class ForgeFMLConnectionType implements ConnectionType {
+
+  final int netVersion;
+
+  public ForgeFMLConnectionType(int netVersion) {
+    this.netVersion = netVersion;
+  }
 
   @Override
   public ClientConnectionPhase getInitialClientPhase() {
@@ -24,7 +30,7 @@ public class ForgeFML2ConnectionType implements ConnectionType {
   @Override
   public GameProfile addGameProfileTokensIfRequired(GameProfile original, PlayerInfoForwarding forwardingType) {
     if (forwardingType == PlayerInfoForwarding.LEGACY) {
-      original.addProperties(Collections.singleton(new GameProfile.Property("extraData", "\1FML2\1", "")));
+      original.addProperties(Collections.singleton(new GameProfile.Property("extraData", "\1FML" + netVersion + "\1", "")));
     }
     return original;
   }
