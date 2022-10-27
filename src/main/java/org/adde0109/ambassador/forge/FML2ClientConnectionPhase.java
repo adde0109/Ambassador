@@ -7,7 +7,6 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.connection.client.LoginSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import io.netty.buffer.ByteBuf;
@@ -36,8 +35,18 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
   private static final Method CONNECT_TO_INITIAL_SERVER;
 
   static {
+    Class clazz;
     try {
-      CONNECT_TO_INITIAL_SERVER = LoginSessionHandler.class.getDeclaredMethod("connectToInitialServer", ConnectedPlayer.class);
+      clazz = Class.forName("com.velocitypowered.proxy.connection.client.LoginSessionHandler");
+    } catch (ClassNotFoundException ignored){
+      try {
+        clazz = Class.forName("com.velocitypowered.proxy.connection.client.AuthSessionHandler");
+      } catch (ClassNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    try {
+      CONNECT_TO_INITIAL_SERVER = clazz.getDeclaredMethod("connectToInitialServer", ConnectedPlayer.class);
       CONNECT_TO_INITIAL_SERVER.setAccessible(true);
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
