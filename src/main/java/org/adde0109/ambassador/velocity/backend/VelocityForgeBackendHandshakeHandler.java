@@ -1,6 +1,7 @@
 package org.adde0109.ambassador.velocity.backend;
 
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.ConnectionType;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -69,10 +70,12 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
       if (connection.getAssociation() instanceof VelocityServerConnection serverConnection) {
         if (serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType type) {
           initBackend(connection,serverConnection,type);
-          if (type == ForgeConstants.ForgeFML2) {
-            handshake.setServerAddress(handshake.getServerAddress() + ForgeConstants.FML2Marker);
-          } else if (type == ForgeConstants.ForgeFML3) {
-            handshake.setServerAddress(handshake.getServerAddress() + ForgeConstants.FML3Marker);
+          if (server.getConfiguration().getPlayerInfoForwardingMode() != PlayerInfoForwarding.LEGACY) {
+            if (type == ForgeConstants.ForgeFML2) {
+              handshake.setServerAddress(handshake.getServerAddress() + ForgeConstants.FML2Marker);
+            } else if (type == ForgeConstants.ForgeFML3) {
+              handshake.setServerAddress(handshake.getServerAddress() + ForgeConstants.FML3Marker);
+            }
           }
         } else {
           ctx.pipeline().remove(this);

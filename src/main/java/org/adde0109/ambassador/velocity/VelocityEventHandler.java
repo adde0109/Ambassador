@@ -9,6 +9,7 @@ import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
+import com.velocitypowered.api.event.player.ServerPostConnectEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -44,7 +45,7 @@ public class VelocityEventHandler {
     continuation.resume();
   }
 
-  @Subscribe(order = PostOrder.FIRST)
+  @Subscribe(order = PostOrder.LAST)
   public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
     ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
     if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
@@ -65,10 +66,22 @@ public class VelocityEventHandler {
       continuation.resume();
       return;
     }
-    if (phase.forced != null)
-      event.setInitialServer(phase.forced);
     if (event.getInitialServer().isEmpty())
       event.setInitialServer(phase.internalServerConnection.getServer());
     continuation.resume();
   }
+
+  @Subscribe(order = PostOrder.LAST)
+  public void onServerPostConnectEvent(ServerPostConnectEvent event, Continuation continuation) {
+    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
+    if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
+      continuation.resume();
+      return;
+    }
+    if (phase.internalServerConnection != null) {
+      player.setConnectedServer(null);
+    }
+    continuation.resume();
+  }
+
 }
