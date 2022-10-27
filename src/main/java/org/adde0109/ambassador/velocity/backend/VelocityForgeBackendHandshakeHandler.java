@@ -30,7 +30,7 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
     if (serverConnection == null) {
       return;
     }
-    VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) serverConnection.getPhase();
+    VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) serverConnection.getPlayer().getPhase();
     if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.MODDED) {
       clientPhase.reset(serverConnection ,serverConnection.getPlayer()).thenAccept(ignored -> ctx.flush());
     } else {
