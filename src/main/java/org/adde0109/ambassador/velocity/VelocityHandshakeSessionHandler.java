@@ -22,11 +22,13 @@ public class VelocityHandshakeSessionHandler implements MinecraftSessionHandler 
   @Override
   public boolean handle(Handshake handshake) {
     handshake.handle(original);
-    if (connection.getType() == ConnectionTypes.VANILLA && connection.getState() == StateRegistry.LOGIN) {
-      final String marker = handshake.getServerAddress().split("\0")[1];
-      switch (marker) {
-        case "FML2" -> connection.setType(ForgeConstants.ForgeFML2);
-        case "FML3" -> connection.setType(ForgeConstants.ForgeFML3);
+    if (connection.getType() == ConnectionTypes.VANILLA) {
+      final String[] markerSplit = handshake.getServerAddress().split("\0");
+      if (connection.getState() == StateRegistry.LOGIN && markerSplit.length > 1) {
+        switch (markerSplit[1]) {
+          case "FML2" -> connection.setType(ForgeConstants.ForgeFML2);
+          case "FML3" -> connection.setType(ForgeConstants.ForgeFML3);
+        }
       }
     }
     return true;

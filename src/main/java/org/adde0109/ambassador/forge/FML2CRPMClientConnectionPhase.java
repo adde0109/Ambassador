@@ -83,6 +83,7 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
 
     connection.getChannel().pipeline().remove(OUTBOUND_CATCHER_NAME);
+    backupServer = null;
   }
 
   public void handleKick(KickedFromServerEvent event) {
