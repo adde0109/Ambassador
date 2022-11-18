@@ -6,7 +6,6 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import io.netty.util.ReferenceCountUtil;
-import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
 import java.util.ArrayList;

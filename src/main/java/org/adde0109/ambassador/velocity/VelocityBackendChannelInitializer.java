@@ -1,6 +1,7 @@
 package org.adde0109.ambassador.velocity;
 
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.network.BackendChannelInitializer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import org.adde0109.ambassador.forge.ForgeConstants;
@@ -9,11 +10,11 @@ import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendHandshakeHan
 
 import java.lang.reflect.Method;
 
-public class VelocityBackendChannelInitializer extends ChannelInitializer<Channel> {
+public class VelocityBackendChannelInitializer extends BackendChannelInitializer {
 
   private static final Method INIT_CHANNEL;
 
-  private final ChannelInitializer<?> original;
+  private final BackendChannelInitializer delegate;
   private final VelocityServer server;
 
   static {
@@ -25,14 +26,19 @@ public class VelocityBackendChannelInitializer extends ChannelInitializer<Channe
     }
   }
 
-  public VelocityBackendChannelInitializer(ChannelInitializer<?> original, VelocityServer server) {
-    this.original = original;
+  public VelocityBackendChannelInitializer(BackendChannelInitializer delegate, VelocityServer server) {
+    super(server);
+    this.delegate = delegate;
     this.server = server;
   }
 
   @Override
-  protected void initChannel(Channel ch) throws Exception {
-    INIT_CHANNEL.invoke(original,ch);
+  protected void initChannel(Channel ch) {
+    try {
+      INIT_CHANNEL.invoke(delegate,ch);
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
     ch.pipeline().addLast(ForgeConstants.HANDLER, new VelocityForgeBackendHandshakeHandler(server));
   }
 }

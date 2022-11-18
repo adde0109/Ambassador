@@ -54,7 +54,7 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
       connection.getChannel().pipeline().remove(OUTBOUND_CATCHER_NAME);
       future.complete(false);
     },5, TimeUnit.SECONDS);
-    connection.getChannel().pipeline().addBefore(Connections.HANDLER,RESET_LISTENER,new FML2CRPMResetCompleteListener(() -> {
+    connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER,RESET_LISTENER,new FML2CRPMResetCompleteListener(() -> {
       if (scheduledFuture.cancel(false)) {
         connection.setState(StateRegistry.LOGIN);
         this.clientPhase = ClientPhase.HANDSHAKE;

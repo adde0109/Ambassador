@@ -10,7 +10,6 @@ import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
-import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 
 import java.util.concurrent.CompletableFuture;
 

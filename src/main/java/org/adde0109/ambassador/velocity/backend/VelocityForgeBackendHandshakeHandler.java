@@ -2,18 +2,15 @@ package org.adde0109.ambassador.velocity.backend;
 
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.PlayerInfoForwarding;
-import com.velocitypowered.proxy.connection.ConnectionType;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.packet.Handshake;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
-import com.velocitypowered.proxy.protocol.packet.ServerLogin;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 import org.adde0109.ambassador.forge.ForgeConstants;
-import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 

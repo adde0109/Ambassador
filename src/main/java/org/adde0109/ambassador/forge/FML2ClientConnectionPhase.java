@@ -2,7 +2,6 @@ package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -10,8 +9,6 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
 import io.netty.util.ReferenceCountUtil;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
@@ -31,6 +28,7 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
   private Throwable throwable;
   private RegisteredServer triedServer;
   private Continuation continuation;
+  private CompletableFuture<Void> onJoinGame;
 
   private static final Method CONNECT_TO_INITIAL_SERVER;
 
@@ -92,11 +90,18 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
     clientPhase = clientPhase == ClientPhase.MODLIST ? ClientPhase.MODDED : ClientPhase.VANILLA;
     internalServerConnection = player.getConnectionInFlight();
     player.resetInFlightConnection();
+    this.onJoinGame = new CompletableFuture<>();
     continuation.resume();
-
   }
 
+  public void handleJoinGame() {
+      this.onJoinGame.complete(null);
+      this.onJoinGame = null;
+  }
 
+  public CompletableFuture<Void> awaitJoinGame() {
+      return this.onJoinGame;
+  }
 
   @Override
   public void handleForward(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
