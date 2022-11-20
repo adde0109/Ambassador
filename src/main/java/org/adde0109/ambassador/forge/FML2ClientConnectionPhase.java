@@ -105,12 +105,12 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
 
   @Override
   public void handleForward(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
-    ByteBuf buf = payload.content().copy();
+    final ByteBuf buf = payload.content().duplicate();
     ProtocolUtils.readString(buf);  //Channel
     ProtocolUtils.readVarInt(buf);  //Length
     if (ProtocolUtils.readVarInt(buf) == 1) {
       getPayloadManager().listenFor(payload.getId()).thenAccept(rawResponse -> {
-        ByteBuf response = rawResponse.copy();
+        final ByteBuf response = rawResponse.duplicate();
         ProtocolUtils.readString(response);  //Channel
         ProtocolUtils.readVarInt(response);  //Length
         if (ProtocolUtils.readVarInt(response) == 2) {
@@ -119,9 +119,7 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
             serverConnection.getPlayer().setPhase(new FML2CRPMClientConnectionPhase(clientPhase,getPayloadManager()));
           }
         }
-        ReferenceCountUtil.release(response);
       });
-      ReferenceCountUtil.release(buf);
     }
   }
 }

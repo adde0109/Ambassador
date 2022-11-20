@@ -13,7 +13,6 @@ import java.util.List;
 
 public class VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
 
-  private List<LoginPluginMessage> queuedHandshakePackets = new ArrayList<>();
 
   public VelocityForgeBackendConnectionPhase() {
   }
@@ -27,27 +26,17 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
 
   public boolean handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) throws Exception {
     VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) player.getPhase());
-    message.retain();
     if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.VANILLA) {
+      server.getConnection().getChannel().config().setAutoRead(false);
+      message.retain();
       clientPhase.reset(server,player).thenAccept((success) -> {
         if (success) {
-          for (LoginPluginMessage msg: queuedHandshakePackets) {
-            ((VelocityForgeClientConnectionPhase) player.getPhase()).forwardPayload(server,msg);
-          }
-          player.getConnection().flush();
-        } else {
-          for (LoginPluginMessage msg: queuedHandshakePackets) {
-            ReferenceCountUtil.release(msg);
-          }
+          clientPhase.forwardPayload(server,message);
+          server.getConnection().getChannel().config().setAutoRead(true);
         }
-        queuedHandshakePackets = null;
       });
-      queuedHandshakePackets = new ArrayList<>();
-      queuedHandshakePackets.add(message);
-    } else if (clientPhase.clientPhase != null) {
-      clientPhase.forwardPayload(server,message);
     } else {
-      queuedHandshakePackets.add(message);
+      clientPhase.forwardPayload(server, (LoginPluginMessage) message.retain());
     }
     return true;
   }

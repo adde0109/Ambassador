@@ -12,6 +12,7 @@ import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.protocol.packet.ClientSettings;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 import org.adde0109.ambassador.forge.FML2ClientConnectionPhase;

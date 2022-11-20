@@ -4,6 +4,7 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
 
 public class FML2CRPMResetCompleteListener extends ChannelInboundHandlerAdapter {
 
@@ -24,6 +25,7 @@ public class FML2CRPMResetCompleteListener extends ChannelInboundHandlerAdapter 
       int originalReaderIndex = buf.readerIndex();
       int packetId = ProtocolUtils.readVarInt(buf);
       if (packetId == 0x02 && buf.readableBytes() > 1) {
+        ReferenceCountUtil.release(msg);
         ctx.pipeline().remove(this);
         whenComplete.run();
         return;
