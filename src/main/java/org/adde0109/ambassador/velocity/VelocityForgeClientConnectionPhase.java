@@ -55,6 +55,7 @@ public abstract class VelocityForgeClientConnectionPhase implements ClientConnec
   final public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
     handleForward(serverConnection,payload);
     if (payloadManager == null) {
+      payload.release();
       return;
     }
     payloadManager.sendPayload("fml:loginwrapper",payload.content()).thenAccept((responseData) -> {

@@ -35,8 +35,11 @@ public class FML2CRPMOutboundCatcher extends ChannelOutboundHandlerAdapter {
 
   @Override
   public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-    if (msg instanceof LoginPluginMessage || msg instanceof ServerLoginSuccess) {
+    if (msg instanceof LoginPluginMessage) {
       ctx.write(msg, promise);
+    } else if (msg instanceof ServerLoginSuccess) {
+      ctx.write(msg,promise);
+      ctx.pipeline().remove(this);
     } else {
       catchedPackets.put(promise,msg);
     }

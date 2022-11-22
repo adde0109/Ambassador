@@ -1,18 +1,13 @@
 package org.adde0109.ambassador.forge;
 
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.ReferenceCountUtil;
 
-public class FML2CRPMResetCompleteListener extends ChannelInboundHandlerAdapter {
-
-  final Runnable whenComplete;
-
-  public FML2CRPMResetCompleteListener(Runnable whenComplete) {
-    this.whenComplete = whenComplete;
-  }
+public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
 
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -25,10 +20,16 @@ public class FML2CRPMResetCompleteListener extends ChannelInboundHandlerAdapter 
       int originalReaderIndex = buf.readerIndex();
       int packetId = ProtocolUtils.readVarInt(buf);
       if (packetId == 0x02 && buf.readableBytes() > 1) {
-        ReferenceCountUtil.release(msg);
-        ctx.pipeline().remove(this);
-        whenComplete.run();
+        try {
+          MinecraftPacket packet = new LoginPluginResponse();
+          packet.decode(buf, ProtocolUtils.Direction.SERVERBOUND,null);
+          ctx.fireChannelRead(packet);
+        } finally {
+          buf.release();
+        }
         return;
+      } else {
+        buf.readerIndex(originalReaderIndex);
       }
     }
     ctx.fireChannelRead(msg);

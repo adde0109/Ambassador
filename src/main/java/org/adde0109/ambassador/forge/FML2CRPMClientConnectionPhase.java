@@ -24,8 +24,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnectionPhase {
-  private static String OUTBOUND_CATCHER_NAME = "ambassador-catcher";
-  private static String RESET_LISTENER = "ambassador-reset-listener";
 
   //TODO: Use modData inside ConnectedPlayer instead
   public byte[] modListData;
@@ -48,22 +46,26 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     MinecraftConnection connection = player.getConnection();
     connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player));
 
-
+    serverConnection.getConnection().getChannel().config().setAutoRead(false);
 
     ScheduledFuture<?> scheduledFuture = connection.eventLoop().schedule(()-> {
-      connection.getChannel().pipeline().remove(OUTBOUND_CATCHER_NAME);
+      connection.getChannel().pipeline().remove(ForgeConstants.OUTBOUND_CATCHER_NAME);
+
       future.complete(false);
-    },5, TimeUnit.SECONDS);
-    connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER,RESET_LISTENER,new FML2CRPMResetCompleteListener(() -> {
+    },300, TimeUnit.SECONDS);
+    connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER,ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
+    getPayloadManager().listenFor(98).thenAccept(ignore -> {
       if (scheduledFuture.cancel(false)) {
+        connection.getChannel().pipeline().remove(ForgeConstants.RESET_LISTENER);
         connection.setState(StateRegistry.LOGIN);
         this.clientPhase = ClientPhase.HANDSHAKE;
+        serverConnection.getConnection().getChannel().config().setAutoRead(true);
         future.complete(true);
       }
-    }));
+    });
     connection.write(new PluginMessage("fml:handshake",Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
     this.clientPhase = null;
-    connection.getChannel().pipeline().addBefore(Connections.HANDLER,OUTBOUND_CATCHER_NAME,new FML2CRPMOutboundCatcher());
+    connection.getChannel().pipeline().addBefore(Connections.HANDLER,ForgeConstants.OUTBOUND_CATCHER_NAME,new FML2CRPMOutboundCatcher());
     return future;
   }
   public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
@@ -82,7 +84,6 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     connection.setState(StateRegistry.PLAY);
     connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
 
-    connection.getChannel().pipeline().remove(OUTBOUND_CATCHER_NAME);
     backupServer = null;
   }
 

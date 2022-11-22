@@ -83,9 +83,9 @@ public class VelocityEventHandler {
     if (phase instanceof FML2ClientConnectionPhase specialPhase) {
       specialPhase.handleJoinGame();
     }
-    //if (((ConnectedPlayer) event.getPlayer()).getConnectedServer() != null && ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection() != null) {
-    //  ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection().write(new ClientSettings("en_GB", (byte) 10, 0, true, (short) 0xFF,1,false,true));
-    //}
+    if (((ConnectedPlayer) event.getPlayer()).getConnectedServer() != null && ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection() != null) {
+      ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection().write(new ClientSettings("en_GB", (byte) 10, 0, true, (short) 0xFF,1,false,true));
+    }
     continuation.resume();
   }
 
