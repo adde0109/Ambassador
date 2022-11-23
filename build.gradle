@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'org.adde0109'
-version '1.1.4-alpha-pixelax3'
+version '1.1.4'
 
 repositories {
     maven {
