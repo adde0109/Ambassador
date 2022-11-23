@@ -1,5 +1,7 @@
 package org.adde0109.ambassador.forge;
 
+import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.channel.ChannelHandlerContext;
@@ -11,7 +13,13 @@ import java.util.*;
 
 public class FML2CRPMOutboundCatcher extends ChannelOutboundHandlerAdapter {
 
+  private final MinecraftConnection connection;
+
   private final Map<ChannelPromise, Object> catchedPackets = Collections.synchronizedMap(new LinkedHashMap<>());
+
+  public FML2CRPMOutboundCatcher(MinecraftConnection connection) {
+    this.connection = connection;
+  }
 
   @Override
   public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
@@ -39,6 +47,7 @@ public class FML2CRPMOutboundCatcher extends ChannelOutboundHandlerAdapter {
       ctx.write(msg, promise);
     } else if (msg instanceof ServerLoginSuccess) {
       ctx.write(msg,promise);
+      connection.setState(StateRegistry.PLAY);
       ctx.pipeline().remove(this);
     } else {
       catchedPackets.put(promise,msg);

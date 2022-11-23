@@ -7,16 +7,16 @@ import io.netty.buffer.ByteBuf;
 
 public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHandler {
   private final MinecraftSessionHandler original;
-  private final ConnectedPlayer player;
+  private final VelocityForgeClientConnectionPhase phase;
 
-  public VelocityForgeHandshakeSessionHandler(MinecraftSessionHandler original, ConnectedPlayer player) {
+  public VelocityForgeHandshakeSessionHandler(MinecraftSessionHandler original, VelocityForgeClientConnectionPhase phase) {
     this.original = original;
-    this.player = player;
+    this.phase = phase;
   }
 
   @Override
   public boolean handle(LoginPluginResponse packet) {
-    if (((VelocityForgeClientConnectionPhase) player.getPhase()).getPayloadManager().handlePayload(packet)) {
+    if (phase.getPayloadManager().handlePayload(packet)) {
       return true;
     } else {
       return original.handle(packet);

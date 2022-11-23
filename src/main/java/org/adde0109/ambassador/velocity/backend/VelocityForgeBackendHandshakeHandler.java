@@ -3,6 +3,7 @@ package org.adde0109.ambassador.velocity.backend;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.connection.backend.LoginSessionHandler;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.packet.Handshake;
@@ -13,6 +14,7 @@ import io.netty.util.ReferenceCountUtil;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
+import org.jetbrains.annotations.NotNull;
 
 public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
 
@@ -37,17 +39,10 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-    if (msg instanceof LoginPluginMessage message && message.getChannel().equals("fml:loginwrapper")) {
-      ((VelocityForgeBackendConnectionPhase) serverConnection.getPhase()).handle(serverConnection, serverConnection.getPlayer(), message);
-      ReferenceCountUtil.release(msg);
-    } else if (msg instanceof ServerLoginSuccess) {
-      ((VelocityForgeBackendConnectionPhase) serverConnection.getPhase()).handleSuccess(serverConnection,server);
-      ctx.pipeline().remove(this);
-      ctx.fireChannelRead(msg);
-    } else {
-      ctx.fireChannelRead(msg);
-    }
+  public void channelActive(@NotNull ChannelHandlerContext ctx) throws Exception {
+    this.serverConnection.getConnection().setSessionHandler(new ForgeHandshakeSessionHandler((LoginSessionHandler) this.serverConnection.getConnection().getSessionHandler(),serverConnection,server));
+    ctx.pipeline().remove(this);
+    ctx.pipeline().fireChannelActive();
   }
 
   private void initBackend(MinecraftConnection connection, VelocityServerConnection serverConnection, ForgeFMLConnectionType type) {

@@ -44,7 +44,7 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     }
 
     MinecraftConnection connection = player.getConnection();
-    connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player));
+    connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),this));
 
     serverConnection.getConnection().getChannel().config().setAutoRead(false);
 
@@ -52,7 +52,7 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
       connection.getChannel().pipeline().remove(ForgeConstants.OUTBOUND_CATCHER_NAME);
 
       future.complete(false);
-    },300, TimeUnit.SECONDS);
+    },5, TimeUnit.SECONDS);
     connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER,ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
     getPayloadManager().listenFor(98).thenAccept(ignore -> {
       if (scheduledFuture.cancel(false)) {
@@ -65,7 +65,7 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     });
     connection.write(new PluginMessage("fml:handshake",Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
     this.clientPhase = null;
-    connection.getChannel().pipeline().addBefore(Connections.HANDLER,ForgeConstants.OUTBOUND_CATCHER_NAME,new FML2CRPMOutboundCatcher());
+    connection.getChannel().pipeline().addBefore(Connections.HANDLER,ForgeConstants.OUTBOUND_CATCHER_NAME,new FML2CRPMOutboundCatcher(connection));
     return future;
   }
   public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
@@ -81,7 +81,6 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
 
     this.clientPhase = this.clientPhase == ClientPhase.MODLIST ? ClientPhase.MODDED : ClientPhase.VANILLA;
 
-    connection.setState(StateRegistry.PLAY);
     connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
 
     backupServer = null;

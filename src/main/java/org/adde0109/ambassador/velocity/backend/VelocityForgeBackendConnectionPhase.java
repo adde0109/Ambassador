@@ -25,21 +25,25 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
       clientPhase.complete((VelocityServer) server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
   }
 
-  public boolean handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) throws Exception {
-    VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) player.getPhase());
-    if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.VANILLA) {
-      message.retain();
-      clientPhase.reset(server,player).thenAccept((success) -> {
-        if (success) {
-          clientPhase.forwardPayload(server,message);
-        } else {
-          message.release();
-        }
-      });
+  public boolean handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) {
+    if (message.getChannel().equals("fml:loginwrapper")) {
+      VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) player.getPhase());
+      if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.VANILLA) {
+        message.retain();
+        clientPhase.reset(server,player).thenAccept((success) -> {
+          if (success) {
+            clientPhase.forwardPayload(server,message);
+          } else {
+            message.release();
+          }
+        });
+      } else {
+        clientPhase.forwardPayload(server, (LoginPluginMessage) message.retain());
+      }
+      return true;
     } else {
-      clientPhase.forwardPayload(server, (LoginPluginMessage) message.retain());
+      return false;
     }
-    return true;
   }
 
 

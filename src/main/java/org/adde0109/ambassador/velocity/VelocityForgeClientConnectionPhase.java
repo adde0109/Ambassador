@@ -45,7 +45,7 @@ public abstract class VelocityForgeClientConnectionPhase implements ClientConnec
     payloadManager = new VelocityLoginPayloadManager(player.getConnection());
     handleLogin(player,server,continuation);
 
-    VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(), player);
+    VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(), this);
     player.getConnection().setSessionHandler(sessionHandler);
   }
 

@@ -5,10 +5,7 @@ import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
-import com.velocitypowered.api.event.player.KickedFromServerEvent;
-import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
-import com.velocitypowered.api.event.player.ServerPostConnectEvent;
-import com.velocitypowered.api.event.player.ServerPreConnectEvent;
+import com.velocitypowered.api.event.player.*;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -16,6 +13,9 @@ import com.velocitypowered.proxy.protocol.packet.ClientSettings;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 import org.adde0109.ambassador.forge.FML2ClientConnectionPhase;
+import org.adde0109.ambassador.forge.ForgeConstants;
+import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
+import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendConnectionPhase;
 
 public class VelocityEventHandler {
 
@@ -83,9 +83,9 @@ public class VelocityEventHandler {
     if (phase instanceof FML2ClientConnectionPhase specialPhase) {
       specialPhase.handleJoinGame();
     }
-    if (((ConnectedPlayer) event.getPlayer()).getConnectedServer() != null && ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection() != null) {
-      ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection().write(new ClientSettings("en_GB", (byte) 10, 0, true, (short) 0xFF,1,false,true));
-    }
+    //if (((ConnectedPlayer) event.getPlayer()).getConnectedServer() != null && ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection() != null) {
+    //  ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection().write(new ClientSettings("en_GB", (byte) 10, 0, true, (short) 0xFF,1,false,true));
+    //}
     continuation.resume();
   }
 
