@@ -33,9 +33,8 @@ public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
             return;
           }
         } catch (Exception ignored) {}
-      } else {
-        buf.readerIndex(originalReaderIndex);
       }
+      buf.readerIndex(originalReaderIndex);
     }
     ctx.fireChannelRead(msg);
   }
