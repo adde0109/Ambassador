@@ -10,7 +10,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
 
   @Override
-  public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+  public void channelRead(ChannelHandlerContext ctx, Object msg) {
     if (msg instanceof ByteBuf buf) {
       if (!ctx.channel().isActive() || !buf.isReadable()) {
         buf.release();
@@ -21,13 +21,18 @@ public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
       int packetId = ProtocolUtils.readVarInt(buf);
       if (packetId == 0x02 && buf.readableBytes() > 1) {
         try {
-          MinecraftPacket packet = new LoginPluginResponse();
-          packet.decode(buf, ProtocolUtils.Direction.SERVERBOUND,null);
-          ctx.fireChannelRead(packet);
-        } finally {
-          buf.release();
-        }
-        return;
+          int id = ProtocolUtils.readVarInt(buf);
+          boolean success = buf.readBoolean();
+          if (id == 98) {
+            try {
+              MinecraftPacket packet = new LoginPluginResponse(id,success,buf.readRetainedSlice(buf.readableBytes()));
+              ctx.fireChannelRead(packet);
+            } finally {
+              buf.release();
+            }
+            return;
+          }
+        } catch (Exception ignored) {}
       } else {
         buf.readerIndex(originalReaderIndex);
       }

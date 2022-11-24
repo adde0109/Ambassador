@@ -96,7 +96,6 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
 
   public void handleJoinGame() {
       this.onJoinGame.complete(null);
-      this.onJoinGame = null;
   }
 
   public CompletableFuture<Void> awaitJoinGame() {

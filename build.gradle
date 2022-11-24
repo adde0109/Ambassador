@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'org.adde0109'
-version '1.1.4'
+version '1.1.4-alpha'
 
 repositories {
     maven {
@@ -21,8 +21,8 @@ dependencies {
     implementation 'com.electronwill.night-config:toml:3.6.5'
     implementation 'org.bstats:bstats-velocity:3.0.0'
     implementation 'org.apache.commons:commons-collections4:4.4'
-    implementation 'io.netty:netty-buffer:4.1.79.Final'
-    implementation 'io.netty:netty-transport:4.1.79.Final'
+    compileOnly 'io.netty:netty-buffer:4.1.85.Final'
+    compileOnly 'io.netty:netty-transport:4.1.85.Final'
 }
 
 shadowJar {
