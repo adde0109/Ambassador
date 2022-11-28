@@ -69,13 +69,13 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
   }
 
   @Override
-  public CompletableFuture<Boolean> reset(VelocityServerConnection serverConnection, ConnectedPlayer player) {
+  public CompletableFuture<Boolean> reset(RegisteredServer server, ConnectedPlayer player) {
     FML2CRPMClientConnectionPhase newPhase = new FML2CRPMClientConnectionPhase(clientPhase,getPayloadManager());
     player.setPhase(newPhase);
-    CompletableFuture<Boolean> future = newPhase.reset(serverConnection,player);
+    CompletableFuture<Boolean> future = newPhase.reset(server,player);
     future.thenAccept(success -> {
       if (!success) {
-        TEMPORARY_FORCED.put(player.getUsername(),serverConnection.getServer());
+        TEMPORARY_FORCED.put(player.getUsername(),server);
         player.disconnect(Component.text("Please reconnect"));
       }
     });

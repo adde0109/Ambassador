@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 
 import java.nio.file.Path;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "1.1.4-alpha", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "1.1.5-alpha", authors = {"adde0109"})
 public class Ambassador {
 
   public ProxyServer server;
@@ -33,7 +33,10 @@ public class Ambassador {
   private final Metrics.Factory metricsFactory;
   private final Path dataDirectory;
 
-
+  private static Ambassador instance;
+  public static Ambassador getInstance() {
+    return instance;
+  }
 
 
   @Inject
@@ -42,6 +45,7 @@ public class Ambassador {
     this.logger = logger;
     this.dataDirectory = dataDirectory;
     this.metricsFactory = metricsFactory;
+    Ambassador.instance = this;
   }
 
   @Subscribe(order = PostOrder.LAST)

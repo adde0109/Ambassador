@@ -4,36 +4,52 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.backend.LoginSessionHandler;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
+import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.buffer.ByteBuf;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import org.adde0109.ambassador.forge.ForgeConstants;
+import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
+import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
 public class ForgeHandshakeSessionHandler implements MinecraftSessionHandler {
 
   private final LoginSessionHandler original;
   private final VelocityServerConnection serverConnection;
-  private final VelocityForgeBackendConnectionPhase phase;
   private final VelocityServer server;
 
   public ForgeHandshakeSessionHandler(LoginSessionHandler original, VelocityServerConnection serverConnection, VelocityServer server) {
     this.original = original;
     this.serverConnection = serverConnection;
-    this.phase = (VelocityForgeBackendConnectionPhase) serverConnection.getPhase();
     this.server = server;
   }
 
   @Override
   public boolean handle(LoginPluginMessage packet) {
-    if (phase.handle(serverConnection,serverConnection.getPlayer(),packet)) {
+    if (packet.getChannel().equals("fml:loginwrapper")) {
+      if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
+        if (!(serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType clientType)) {
+          final String reason = "This server has mods that require Forge to be installed on the client. Contact your server admin for more details.";
+          original.handle(new Disconnect(reason));
+          return true;
+        }
+        serverConnection.getConnection().setType(clientType);
+        serverConnection.setConnectionPhase(clientType.getInitialBackendPhase());
+      }
+      ((VelocityForgeBackendConnectionPhase) serverConnection.getPhase()).handle(serverConnection,serverConnection.getPlayer(),packet);
       return true;
-    } else {
-      return original.handle(packet);
     }
+    return original.handle(packet);
   }
 
   @Override
   public boolean handle(ServerLoginSuccess packet) {
-    phase.handleSuccess(serverConnection,server);
+    if ((serverConnection.getPlayer().getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
+      phase.complete(server,serverConnection.getPlayer(),serverConnection.getPlayer().getConnection());
+    }
     return original.handle(packet);
   }
 

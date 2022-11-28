@@ -57,8 +57,12 @@ public class VelocityEventHandler {
       event.setResult(ServerPreConnectEvent.ServerResult.denied());
       player.setConnectedServer((VelocityServerConnection) phase.internalServerConnection);
       phase.internalServerConnection = null;
+    } else if (phase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.MODDED) {
+      player.getConnection().eventLoop().submit(() -> phase.reset(event.getOriginalServer(), (ConnectedPlayer) event.getPlayer())
+              .thenAccept((ignored) -> continuation.resume()));
+    } else {
+      continuation.resume();
     }
-    continuation.resume();
   }
 
   @Subscribe(order = PostOrder.LAST)

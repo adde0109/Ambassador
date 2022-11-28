@@ -18,33 +18,24 @@ public class VelocityForgeBackendConnectionPhase implements BackendConnectionPha
   public VelocityForgeBackendConnectionPhase() {
   }
 
-  public void handleSuccess(VelocityServerConnection serverCon, VelocityServer server) {
-    VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) serverCon.getPlayer().getPhase());
-    if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.HANDSHAKE
-            || clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.MODLIST)
-      clientPhase.complete((VelocityServer) server,serverCon.getPlayer(),serverCon.getPlayer().getConnection());
-  }
+  public void handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) {
+    VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) player.getPhase());
+    if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.VANILLA) {
+      final LoginPluginMessage msg = message;
 
-  public boolean handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) {
-    if (message.getChannel().equals("fml:loginwrapper")) {
-      VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) player.getPhase());
-      if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.VANILLA) {
-        message.retain();
-        clientPhase.reset(server,player).thenAccept((success) -> {
-          if (success) {
-            clientPhase.forwardPayload(server,message);
-          } else {
-            message.release();
-          }
-        });
-      } else {
-        clientPhase.forwardPayload(server, (LoginPluginMessage) message.retain());
-      }
-      return true;
+      msg.content().retain().discardSomeReadBytes();
+
+      server.getConnection().getChannel().config().setAutoRead(false);
+      clientPhase.reset(server.getServer(),player).thenAccept((success) -> {
+        if (success) {
+          clientPhase.forwardPayload(server,msg);
+          server.getConnection().getChannel().config().setAutoRead(true);
+        } else {
+          msg.release();
+        }
+      });
     } else {
-      return false;
+      clientPhase.forwardPayload(server, (LoginPluginMessage) message.retain());
     }
   }
-
-
 }

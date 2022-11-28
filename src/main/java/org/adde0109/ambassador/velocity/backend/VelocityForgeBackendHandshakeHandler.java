@@ -16,9 +16,8 @@ import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.jetbrains.annotations.NotNull;
 
-public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
+public class VelocityForgeBackendHandshakeHandler extends ChannelInboundHandlerAdapter {
 
-  private VelocityServerConnection serverConnection;
   private final VelocityServer server;
 
   public VelocityForgeBackendHandshakeHandler(VelocityServer server) {
@@ -26,58 +25,15 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void flush(ChannelHandlerContext ctx) throws Exception {
-    if (serverConnection == null) {
-      return;
-    }
-    VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) serverConnection.getPlayer().getPhase();
-    if (clientPhase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.MODDED) {
-      clientPhase.reset(serverConnection ,serverConnection.getPlayer()).thenAccept(ignored -> ctx.flush());
-    } else {
-      ctx.flush();
-    }
-  }
-
-  @Override
   public void channelActive(@NotNull ChannelHandlerContext ctx) throws Exception {
-    this.serverConnection.getConnection().setSessionHandler(new ForgeHandshakeSessionHandler((LoginSessionHandler) this.serverConnection.getConnection().getSessionHandler(),serverConnection,server));
+    MinecraftConnection connection = (MinecraftConnection) ctx.pipeline().get(Connections.HANDLER);
+    VelocityServerConnection serverConnection = (VelocityServerConnection) connection.getAssociation();
+
+    if (serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType) {
+      connection.setSessionHandler(new ForgeHandshakeSessionHandler((LoginSessionHandler) connection.getSessionHandler(),serverConnection,server));
+    }
+
     ctx.pipeline().remove(this);
     ctx.pipeline().fireChannelActive();
-  }
-
-  private void initBackend(MinecraftConnection connection, VelocityServerConnection serverConnection, ForgeFMLConnectionType type) {
-    this.serverConnection = serverConnection;
-    connection.setType(type);
-    serverConnection.setConnectionPhase(connection.getType().getInitialBackendPhase());
-  }
-
-  @Override
-  public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-    if (!(msg instanceof Handshake handshake)){
-      ctx.write(msg, promise);
-      return;
-    }
-    ChannelHandler handler = ctx.pipeline().get(Connections.HANDLER);
-    if (handler instanceof MinecraftConnection connection) {
-      if (connection.getAssociation() instanceof VelocityServerConnection serverConnection) {
-        if (serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType type) {
-          initBackend(connection,serverConnection,type);
-          if (server.getConfiguration().getPlayerInfoForwardingMode() != PlayerInfoForwarding.LEGACY) {
-            if (type == ForgeConstants.ForgeFML2) {
-              handshake.setServerAddress(handshake.getServerAddress() + ForgeConstants.FML2Marker);
-            } else if (type == ForgeConstants.ForgeFML3) {
-              handshake.setServerAddress(handshake.getServerAddress() + ForgeConstants.FML3Marker);
-            }
-          }
-        } else {
-          ctx.pipeline().remove(this);
-        }
-      } else {
-        throw new Exception("Connection not associated with a server connection");
-      }
-    } else {
-      throw new Exception("Default minecraft packet handler not found");
-    }
-    ctx.write(msg,promise);
   }
 }

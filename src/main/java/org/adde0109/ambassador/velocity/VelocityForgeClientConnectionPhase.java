@@ -33,7 +33,7 @@ public abstract class VelocityForgeClientConnectionPhase implements ClientConnec
   public void handleLogin(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
   }
 
-  public CompletableFuture<Boolean> reset(VelocityServerConnection serverConnection, ConnectedPlayer player) {
+  public CompletableFuture<Boolean> reset(RegisteredServer server, ConnectedPlayer player) {
     return CompletableFuture.completedFuture(false);
   }
 
