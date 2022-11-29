@@ -4,6 +4,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.backend.LoginSessionHandler;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
@@ -33,7 +34,7 @@ public class ForgeHandshakeSessionHandler implements MinecraftSessionHandler {
       if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
         if (!(serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType clientType)) {
           final String reason = "This server has mods that require Forge to be installed on the client. Contact your server admin for more details.";
-          original.handle(new Disconnect(reason));
+          original.handle(Disconnect.create(Component.text(reason, NamedTextColor.RED),serverConnection.getPlayer().getProtocolVersion()));
           return true;
         }
         serverConnection.getConnection().setType(clientType);
@@ -53,14 +54,15 @@ public class ForgeHandshakeSessionHandler implements MinecraftSessionHandler {
     return original.handle(packet);
   }
 
-  @Override
-  public void handleUnknown(ByteBuf buf) {
-    original.handleUnknown(buf);
-  }
 
   @Override
   public void disconnected() {
     original.disconnected();
+  }
+
+  public void handleGeneric(MinecraftPacket packet) {
+    if (!packet.handle(original))
+      original.handleGeneric(packet);
   }
 
   public MinecraftSessionHandler getOriginal() {
