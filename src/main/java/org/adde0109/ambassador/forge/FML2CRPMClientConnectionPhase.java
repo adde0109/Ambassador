@@ -77,8 +77,8 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
 
     this.clientPhase = this.clientPhase == ClientPhase.MODLIST ? ClientPhase.MODDED : ClientPhase.VANILLA;
 
-    connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
     connection.setState(StateRegistry.PLAY);
+    connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
     ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
 
     backupServer = null;
