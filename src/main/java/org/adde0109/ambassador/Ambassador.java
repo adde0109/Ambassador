@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 
 import java.nio.file.Path;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "1.1.5B-alpha", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "1.1.7-alpha", authors = {"adde0109"})
 public class Ambassador {
 
   public ProxyServer server;
@@ -62,10 +62,10 @@ public class Ambassador {
     cmField.setAccessible(true);
 
     ChannelInitializer<?> original = ((ConnectionManager) cmField.get(server)).serverChannelInitializer.get();
-    ((ConnectionManager) cmField.get(server)).serverChannelInitializer.set(new VelocityServerChannelInitializer((ServerChannelInitializer) original,(VelocityServer) server));
+    ((ConnectionManager) cmField.get(server)).serverChannelInitializer.set(new VelocityServerChannelInitializer(original,(VelocityServer) server));
 
     ChannelInitializer<?> originalBackend = ((ConnectionManager) cmField.get(server)).backendChannelInitializer.get();
-    ((ConnectionManager) cmField.get(server)).backendChannelInitializer.set(new VelocityBackendChannelInitializer((BackendChannelInitializer) originalBackend,(VelocityServer) server));
+    ((ConnectionManager) cmField.get(server)).backendChannelInitializer.set(new VelocityBackendChannelInitializer(originalBackend,(VelocityServer) server));
   }
 
   private void initMetrics() {

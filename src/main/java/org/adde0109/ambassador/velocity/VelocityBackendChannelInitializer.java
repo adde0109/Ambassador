@@ -14,7 +14,7 @@ public class VelocityBackendChannelInitializer extends BackendChannelInitializer
 
   private static final Method INIT_CHANNEL;
 
-  private final BackendChannelInitializer delegate;
+  private final ChannelInitializer<?> delegate;
   private final VelocityServer server;
 
   static {
@@ -26,7 +26,7 @@ public class VelocityBackendChannelInitializer extends BackendChannelInitializer
     }
   }
 
-  public VelocityBackendChannelInitializer(BackendChannelInitializer delegate, VelocityServer server) {
+  public VelocityBackendChannelInitializer(ChannelInitializer<?> delegate, VelocityServer server) {
     super(server);
     this.delegate = delegate;
     this.server = server;

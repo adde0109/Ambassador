@@ -15,7 +15,7 @@ import java.lang.reflect.Method;
 public class VelocityServerChannelInitializer extends ServerChannelInitializer {
   private static final Method INIT_CHANNEL;
 
-  private final ServerChannelInitializer delegate;
+  private final ChannelInitializer<?> delegate;
 
   static {
     try {
@@ -26,7 +26,7 @@ public class VelocityServerChannelInitializer extends ServerChannelInitializer {
     }
   }
 
-  public VelocityServerChannelInitializer(ServerChannelInitializer delegate,VelocityServer server) {
+  public VelocityServerChannelInitializer(ChannelInitializer<?> delegate,VelocityServer server) {
     super(server);
     this.delegate = delegate;
   }
