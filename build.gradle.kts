@@ -27,6 +27,10 @@ dependencies {
 }
 
 tasks {
+    jar {
+        dependsOn(shadowJar);
+        enabled = false;
+    }
     shadowJar {
         relocate("org.bstats", "org.adde0109.ambassador")
         archiveBaseName.set("Ambassador-Velocity")
