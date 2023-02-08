@@ -34,6 +34,9 @@ import org.slf4j.Logger;
 
 import java.nio.file.Path;
 
+import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_19;
+import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier.mapSet;
+
 @Plugin(id = "ambassador", name = "Ambassador", version = "1.2.0-beta", authors = {"adde0109"})
 public class Ambassador {
 
@@ -78,8 +81,8 @@ public class Ambassador {
 
     Method argumentRegistry = ArgumentPropertyRegistry.class.getDeclaredMethod("register", ArgumentIdentifier.class, Class.class, ArgumentPropertySerializer.class);
     argumentRegistry.setAccessible(true);
-    argumentRegistry.invoke(null,ArgumentIdentifier.id("forge:enum"), EnumArgumentProperty.class, EnumArgumentPropertySerializer.ENUM);
-    argumentRegistry.invoke(null,ArgumentIdentifier.id("forge:modid"), ModIdArgumentProperty.class,
+    argumentRegistry.invoke(null,ArgumentIdentifier.id("forge:enum", mapSet(MINECRAFT_1_19, 50)), EnumArgumentProperty.class, EnumArgumentPropertySerializer.ENUM);
+    argumentRegistry.invoke(null,ArgumentIdentifier.id("forge:modid", mapSet(MINECRAFT_1_19, 51)), ModIdArgumentProperty.class,
             new ArgumentPropertySerializer<>() {
               @Override
               public ModIdArgumentProperty deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
