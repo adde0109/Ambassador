@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.adde0109"
-version = "1.1.7-alpha"
+version = "1.2.0-beta"
 
 repositories {
     mavenCentral()
@@ -24,6 +24,7 @@ dependencies {
     implementation("org.apache.commons:commons-collections4:4.4")
     compileOnly("io.netty:netty-buffer:4.1.86.Final")
     compileOnly("io.netty:netty-transport:4.1.86.Final")
+    compileOnly("io.netty:netty-codec:4.1.86.Final")
 }
 
 tasks {

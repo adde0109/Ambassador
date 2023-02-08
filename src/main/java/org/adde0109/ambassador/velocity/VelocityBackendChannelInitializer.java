@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.network.BackendChannelInitializer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import org.adde0109.ambassador.forge.ForgeConstants;
+import org.adde0109.ambassador.velocity.backend.FMLMarkerAdder;
 import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendHandshakeHandler;
 
 
@@ -39,6 +40,7 @@ public class VelocityBackendChannelInitializer extends BackendChannelInitializer
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
+    ch.pipeline().addLast(ForgeConstants.MARKER_ADDER, new FMLMarkerAdder());
     ch.pipeline().addLast(ForgeConstants.HANDLER, new VelocityForgeBackendHandshakeHandler(server));
   }
 }

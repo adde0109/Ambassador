@@ -4,6 +4,7 @@ import com.velocitypowered.proxy.connection.ConnectionType;
 
 public class ForgeConstants {
   public static final String HANDLER = "Modern Forge handler";
+  public static final String MARKER_ADDER = "FML2/3 Marker Adder";
   public static final String OUTBOUND_CATCHER_NAME = "ambassador-catcher";
   public static final String RESET_LISTENER = "ambassador-reset-listener";
 
