@@ -1,0 +1,4 @@
+name: Ambassador
+main: org.adde0109.ambassador.AmbassadorPlugin
+version: 0.0.0-Bungeecord
+author: adde0109
