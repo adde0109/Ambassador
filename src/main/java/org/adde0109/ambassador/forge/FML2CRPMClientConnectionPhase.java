@@ -7,7 +7,6 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
-import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -51,7 +50,7 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     ScheduledFuture<?> scheduledFuture = connection.eventLoop().schedule(()-> {
       connection.getChannel().pipeline().remove(ForgeConstants.RESET_LISTENER);
       future.complete(false);
-    },5, TimeUnit.SECONDS);
+    }, Ambassador.getInstance().config.getResetTimeout(), TimeUnit.MILLISECONDS);
     connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER, ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
     getPayloadManager().listenFor(98).thenAccept(ignore -> {
       if (scheduledFuture.cancel(false)) {

@@ -1,0 +1,9 @@
+# Do not change this
+config-version = "1.0"
+
+# How long to wait for the client to reset before disconnecting (In milliseconds)
+reset-timeout = 1000
+# Message displayed to the player when disconnected from proxy during server switch.
+disconnect-reset-message = "Please reconnect"
+# How long the player has to reconnect before canceling the server switch. (In seconds)
+server-switch-cancellation-time = 120
