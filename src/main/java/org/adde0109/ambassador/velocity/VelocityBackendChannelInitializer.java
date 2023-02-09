@@ -40,7 +40,7 @@ public class VelocityBackendChannelInitializer extends BackendChannelInitializer
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
-    ch.pipeline().addLast(ForgeConstants.MARKER_ADDER, new FMLMarkerAdder());
+    ch.pipeline().addLast(ForgeConstants.MARKER_ADDER, new FMLMarkerAdder(server));
     ch.pipeline().addLast(ForgeConstants.HANDLER, new VelocityForgeBackendHandshakeHandler(server));
   }
 }
