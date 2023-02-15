@@ -8,21 +8,24 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhase {
 
   private Throwable throwable;
   private RegisteredServer triedServer;
-  private Continuation continuation;
+  private CompletableFuture<Void> onServerSuccess;
   private CompletableFuture<Void> onJoinGame;
 
   private static final Method CONNECT_TO_INITIAL_SERVER;
@@ -47,20 +50,9 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
   }
 
   @Override
-  public void handleLogin(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
-    this.continuation = continuation;
-    final MinecraftConnection connection = player.getConnection();
-
+  public RegisteredServer chooseServer(ConnectedPlayer player) {
     forced = Ambassador.getTemporaryForced().remove(player.getUsername());
-    if (forced != null) {
-      player.createConnectionRequest(forced).fireAndForget();
-    } else {
-      try {
-        CONNECT_TO_INITIAL_SERVER.invoke(player.getConnection().getSessionHandler(),player);
-      } catch (ReflectiveOperationException e) {
-        continuation.resumeWithException(e);
-      }
-    }
+    return forced;
   }
 
   @Override
@@ -77,17 +69,6 @@ public class FML2ClientConnectionPhase extends VelocityForgeClientConnectionPhas
     return future;
   }
 
-  @Override
-  public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
-    if (triedServer != null)
-      player.sendMessage(Component.translatable("velocity.error.connecting-server-error",
-              Component.text(triedServer.getServerInfo().getName())));
-    clientPhase = clientPhase == ClientPhase.MODLIST ? ClientPhase.MODDED : ClientPhase.VANILLA;
-    internalServerConnection = player.getConnectionInFlight();
-    player.resetInFlightConnection();
-    this.onJoinGame = new CompletableFuture<>();
-    continuation.resume();
-  }
 
   public void handleJoinGame() {
       this.onJoinGame.complete(null);

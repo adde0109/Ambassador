@@ -1,6 +1,5 @@
 package org.adde0109.ambassador.velocity;
 
-import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
@@ -11,6 +10,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class VelocityForgeClientConnectionPhase implements ClientConnectionPhase {
@@ -30,43 +30,29 @@ public abstract class VelocityForgeClientConnectionPhase implements ClientConnec
   protected VelocityForgeClientConnectionPhase() {
   }
 
-  public void handleLogin(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
+  public RegisteredServer chooseServer(ConnectedPlayer player) {
+    return null;
   }
 
   public CompletableFuture<Boolean> reset(RegisteredServer server, ConnectedPlayer player) {
     return CompletableFuture.completedFuture(false);
   }
 
-  public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
 
-  }
 
-  final void fireLoginEvent(ConnectedPlayer player, VelocityServer server, Continuation continuation) {
-    payloadManager = new VelocityLoginPayloadManager(player.getConnection());
-    handleLogin(player,server,continuation);
-
-    VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(), this);
-    player.getConnection().setSessionHandler(sessionHandler);
+  final void onFirstLogin(ConnectedPlayer player, VelocityServer server) throws InterruptedException, InvocationTargetException, IllegalAccessException {
   }
 
   public void handleForward(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
   }
 
-  final public void forwardPayload(VelocityServerConnection serverConnection, LoginPluginMessage payload) {
-    handleForward(serverConnection,payload);
-    if (payloadManager == null) {
-      payload.release();
-      return;
-    }
-    payloadManager.sendPayload("fml:loginwrapper",payload.content()).thenAccept((responseData) -> {
-      //Move this to the backend. Backend should have its own forwarder.
-      serverConnection.getConnection().write(new LoginPluginResponse(payload.getId(),responseData.isReadable(),responseData.retain()));
-    });
-    clientPhase = ClientPhase.MODLIST;
-  }
-
   public final VelocityLoginPayloadManager getPayloadManager() {
     return payloadManager;
+  }
+
+  public boolean handle(ConnectedPlayer player, LoginPluginResponse response, VelocityServerConnection server) {
+    server.getConnection().write(response.retain());
+    return true;
   }
 
   public enum ClientPhase {

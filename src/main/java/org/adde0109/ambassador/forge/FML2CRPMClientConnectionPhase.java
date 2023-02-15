@@ -42,7 +42,7 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     }
 
     MinecraftConnection connection = player.getConnection();
-    connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),this));
+    connection.setSessionHandler(new VelocityForgeHandshakeSessionHandler(connection.getSessionHandler(),player));
 
     ((VelocityServer) Ambassador.getInstance().server).unregisterConnection(player);
     this.clientPhase = null;
@@ -63,25 +63,7 @@ public class FML2CRPMClientConnectionPhase extends VelocityForgeClientConnection
     connection.write(new PluginMessage("fml:handshake",Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
     return future;
   }
-  public void complete(VelocityServer server, ConnectedPlayer player, MinecraftConnection connection) {
-    VelocityConfiguration configuration = (VelocityConfiguration) server.getConfiguration();
-    UUID playerUniqueId = player.getUniqueId();
-    if (configuration.getPlayerInfoForwardingMode() == PlayerInfoForwarding.NONE) {
-      playerUniqueId = UuidUtils.generateOfflinePlayerUuid(player.getUsername());
-    }
-    ServerLoginSuccess success = new ServerLoginSuccess();
-    success.setUsername(player.getUsername());
-    success.setUuid(playerUniqueId);
-    connection.write(success);
 
-    this.clientPhase = this.clientPhase == ClientPhase.MODLIST ? ClientPhase.MODDED : ClientPhase.VANILLA;
-
-    connection.setState(StateRegistry.PLAY);
-    connection.setSessionHandler(((VelocityForgeHandshakeSessionHandler) connection.getSessionHandler()).getOriginal());
-    ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
-
-    backupServer = null;
-  }
 
   public void handleKick(KickedFromServerEvent event) {
     if (backupServer != null && !(event.getResult() instanceof KickedFromServerEvent.RedirectPlayer)) {

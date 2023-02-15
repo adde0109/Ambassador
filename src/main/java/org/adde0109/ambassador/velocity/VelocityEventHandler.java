@@ -3,19 +3,15 @@ package org.adde0109.ambassador.velocity;
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
-import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.event.player.*;
-import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.packet.ClientSettings;
+import com.velocitypowered.proxy.protocol.StateRegistry;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
-import org.adde0109.ambassador.forge.FML2ClientConnectionPhase;
-import org.adde0109.ambassador.forge.ForgeConstants;
-import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
-import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendConnectionPhase;
 
 public class VelocityEventHandler {
 
@@ -26,16 +22,22 @@ public class VelocityEventHandler {
   }
 
   @Subscribe
-  public void onPermissionsSetupEvent(PermissionsSetupEvent event, Continuation continuation) {
-    if(!(event.getSubject() instanceof ConnectedPlayer player)) {
-      continuation.resume();
-      return;
+  public void onLoginEvent(LoginEvent event, Continuation continuation) {
+    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
+    if (player.getPhase() instanceof VelocityForgeClientConnectionPhase) {
+      player.getConnection().eventLoop().submit(() -> player.getConnection().setState(StateRegistry.LOGIN));
     }
-    if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
-      continuation.resume();
-      return;
+    continuation.resume();
+  }
+
+  @Subscribe
+  public void onPostLoginEvent(PostLoginEvent event, Continuation continuation) {
+    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
+    if (player.getPhase() instanceof VelocityForgeClientConnectionPhase phase) {
+      VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(), player);
+      player.getConnection().eventLoop().submit(() -> player.getConnection().setSessionHandler(sessionHandler));
     }
-    player.getConnection().eventLoop().submit(() -> phase.fireLoginEvent(player, (VelocityServer) ambassador.server,continuation));
+    continuation.resume();
   }
 
   @Subscribe(order = PostOrder.LAST)
@@ -72,40 +74,10 @@ public class VelocityEventHandler {
       continuation.resume();
       return;
     }
-    if (event.getInitialServer().isEmpty())
-      event.setInitialServer(phase.internalServerConnection.getServer());
+    RegisteredServer chosenServer = phase.chooseServer(player);
+    if (chosenServer != null)
+      event.setInitialServer(chosenServer);
     continuation.resume();
   }
 
-  @Subscribe(order = PostOrder.LAST)
-  public void onServerPostConnectEvent(ServerPostConnectEvent event, Continuation continuation) {
-    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
-    if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
-      continuation.resume();
-      return;
-    }
-    if (phase instanceof FML2ClientConnectionPhase specialPhase) {
-      specialPhase.handleJoinGame();
-    }
-    //if (((ConnectedPlayer) event.getPlayer()).getConnectedServer() != null && ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection() != null) {
-    //  ((ConnectedPlayer) event.getPlayer()).getConnectedServer().getConnection().write(new ClientSettings("en_GB", (byte) 10, 0, true, (short) 0xFF,1,false,true));
-    //}
-    continuation.resume();
-  }
-
-  @Subscribe
-  public void onLoginEvent(PostLoginEvent event, Continuation continuation) {
-    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
-    if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
-      continuation.resume();
-      return;
-    }
-
-    if (phase instanceof FML2ClientConnectionPhase specialPhase) {
-      specialPhase.awaitJoinGame().thenAcceptAsync((ignored) -> {
-        player.setConnectedServer(null);
-        continuation.resume();
-      },player.getConnection().eventLoop());
-    }
-  }
 }

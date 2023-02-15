@@ -2,6 +2,7 @@ package org.adde0109.ambassador.velocity.backend;
 
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
+import com.velocitypowered.proxy.connection.backend.BackendConnectionPhases;
 import com.velocitypowered.proxy.connection.backend.LoginSessionHandler;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
@@ -31,16 +32,11 @@ public class ForgeHandshakeSessionHandler implements MinecraftSessionHandler {
   @Override
   public boolean handle(LoginPluginMessage packet) {
     if (packet.getChannel().equals("fml:loginwrapper")) {
-      if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
-        if (!(serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType clientType)) {
-          final String reason = "This server has mods that require Forge to be installed on the client. Contact your server admin for more details.";
-          original.handle(Disconnect.create(Component.text(reason, NamedTextColor.RED),serverConnection.getPlayer().getProtocolVersion()));
-          return true;
-        }
-        serverConnection.getConnection().setType(clientType);
-        serverConnection.setConnectionPhase(clientType.getInitialBackendPhase());
+      if (serverConnection.getPhase() == BackendConnectionPhases.UNKNOWN) {
+        VelocityForgeBackendConnectionPhase.NOT_STARTED.handle(serverConnection,serverConnection.getPlayer(),packet);
+      } else if (serverConnection.getPhase() instanceof VelocityForgeBackendConnectionPhase phase1) {
+        phase1.handle(serverConnection,serverConnection.getPlayer(),packet);
       }
-      ((VelocityForgeBackendConnectionPhase) serverConnection.getPhase()).handle(serverConnection,serverConnection.getPlayer(),packet);
       return true;
     }
     return original.handle(packet);
@@ -48,8 +44,8 @@ public class ForgeHandshakeSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(ServerLoginSuccess packet) {
-    if ((serverConnection.getPlayer().getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
-      phase.complete(server,serverConnection.getPlayer(),serverConnection.getPlayer().getConnection());
+    if ((serverConnection.getPhase() instanceof VelocityForgeBackendConnectionPhase phase)) {
+      phase.onLoginSuccess(serverConnection,serverConnection.getPlayer());
     }
     return original.handle(packet);
   }
