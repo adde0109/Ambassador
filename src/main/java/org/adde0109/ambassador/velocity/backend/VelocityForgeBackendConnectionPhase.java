@@ -3,9 +3,11 @@ package org.adde0109.ambassador.velocity.backend;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
+import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import io.netty.channel.PendingWriteQueue;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
@@ -34,34 +36,21 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     }
   };
 
+
+
   VelocityForgeBackendConnectionPhase() {
   }
 
   public void handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) {
 
-
     VelocityForgeBackendConnectionPhase newPhase = nextPhase();
 
     server.setConnectionPhase(newPhase);
 
-    VelocityForgeClientConnectionPhase clientPhase = ((VelocityForgeClientConnectionPhase) player.getPhase());
-    if (player.getConnection().getState() != StateRegistry.LOGIN) {
-      final LoginPluginMessage msg = message;
-
-      msg.content().retain().discardSomeReadBytes();
-
-      server.getConnection().getChannel().config().setAutoRead(false);
-      clientPhase.reset(server.getServer(),player).thenAccept((success) -> {
-        if (success) {
-          player.getConnection().write(msg);
-          server.getConnection().getChannel().config().setAutoRead(true);
-        } else {
-          msg.release();
-        }
-      });
-    } else {
-      player.getConnection().write(message.retain());
-    }
+    //Reset client if not ready to receive new handshake
+    VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
+    clientPhase.resetConnectionPhase(player);
+    player.getConnection().write(message.retain());
   }
 
   public void onLoginSuccess(VelocityServerConnection serverCon, ConnectedPlayer player) {

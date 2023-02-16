@@ -4,26 +4,19 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhases;
 import com.velocitypowered.proxy.connection.backend.LoginSessionHandler;
+import com.velocitypowered.proxy.connection.backend.TransitionSessionHandler;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
-import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
-import io.netty.buffer.ByteBuf;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
-import org.adde0109.ambassador.forge.ForgeConstants;
-import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
-import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
-public class ForgeHandshakeSessionHandler implements MinecraftSessionHandler {
+public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
   private final LoginSessionHandler original;
   private final VelocityServerConnection serverConnection;
   private final VelocityServer server;
 
-  public ForgeHandshakeSessionHandler(LoginSessionHandler original, VelocityServerConnection serverConnection, VelocityServer server) {
+  public ForgeLoginSessionHandler(LoginSessionHandler original, VelocityServerConnection serverConnection, VelocityServer server) {
     this.original = original;
     this.serverConnection = serverConnection;
     this.server = server;
@@ -47,7 +40,11 @@ public class ForgeHandshakeSessionHandler implements MinecraftSessionHandler {
     if ((serverConnection.getPhase() instanceof VelocityForgeBackendConnectionPhase phase)) {
       phase.onLoginSuccess(serverConnection,serverConnection.getPlayer());
     }
-    return original.handle(packet);
+    original.handle(packet);
+    serverConnection.getConnection().setSessionHandler(
+            new ForgePlaySessionHandler((TransitionSessionHandler) serverConnection
+                    .getConnection().getSessionHandler(),serverConnection));
+    return true;
   }
 
 

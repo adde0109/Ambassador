@@ -25,7 +25,7 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelInboundHandlerA
     ctx.pipeline().remove(this);
 
     if (serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType) {
-      connection.setSessionHandler(new ForgeHandshakeSessionHandler((LoginSessionHandler) connection.getSessionHandler(),serverConnection,server));
+      connection.setSessionHandler(new ForgeLoginSessionHandler((LoginSessionHandler) connection.getSessionHandler(),serverConnection,server));
     }
 
     ctx.pipeline().fireChannelActive();

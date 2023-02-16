@@ -11,7 +11,6 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import org.adde0109.ambassador.Ambassador;
-import org.adde0109.ambassador.forge.FML2CRPMClientConnectionPhase;
 
 public class VelocityEventHandler {
 
@@ -41,30 +40,8 @@ public class VelocityEventHandler {
   }
 
   @Subscribe(order = PostOrder.LAST)
-  public void onKickedFromServerEvent(KickedFromServerEvent event, Continuation continuation) {
-    if (((ConnectedPlayer) event.getPlayer()).getPhase() instanceof FML2CRPMClientConnectionPhase phase) {
-      phase.handleKick(event);
-    }
-    continuation.resume();
-  }
-
-  @Subscribe(order = PostOrder.LAST)
   public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
-    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
-    if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
-      continuation.resume();
-      return;
-    }
-    if (phase.internalServerConnection != null) {
-      event.setResult(ServerPreConnectEvent.ServerResult.denied());
-      player.setConnectedServer((VelocityServerConnection) phase.internalServerConnection);
-      phase.internalServerConnection = null;
-    } else if (phase.clientPhase == VelocityForgeClientConnectionPhase.ClientPhase.MODDED) {
-      player.getConnection().eventLoop().submit(() -> phase.reset(event.getOriginalServer(), (ConnectedPlayer) event.getPlayer())
-              .thenAccept((ignored) -> continuation.resume()));
-    } else {
-      continuation.resume();
-    }
+    continuation.resume();
   }
 
   @Subscribe(order = PostOrder.LAST)
@@ -74,7 +51,7 @@ public class VelocityEventHandler {
       continuation.resume();
       return;
     }
-    RegisteredServer chosenServer = phase.chooseServer(player);
+    RegisteredServer chosenServer = Ambassador.getTemporaryForced().remove(player.getUsername());
     if (chosenServer != null)
       event.setInitialServer(chosenServer);
     continuation.resume();

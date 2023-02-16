@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.ConnectionType;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
+import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.backend.VelocityForgeBackendConnectionPhase;
 
 import java.util.Collections;
@@ -19,7 +20,7 @@ public class ForgeFMLConnectionType implements ConnectionType {
 
   @Override
   public ClientConnectionPhase getInitialClientPhase() {
-    return new FML2ClientConnectionPhase();
+    return VelocityForgeClientConnectionPhase.NOT_STARTED;
   }
 
   @Override
