@@ -1,14 +1,19 @@
 package org.adde0109.ambassador.velocity.backend;
 
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhases;
 import com.velocitypowered.proxy.connection.backend.LoginSessionHandler;
 import com.velocitypowered.proxy.connection.backend.TransitionSessionHandler;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
+import net.kyori.adventure.text.Component;
+import org.adde0109.ambassador.forge.ForgeConstants;
+import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 
 public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
@@ -47,9 +52,23 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
+  @Override
+  public boolean handle(Disconnect packet) {
+    if (!serverConnection.getPlayer().getPhase().consideredComplete()) {
+      serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(), packet,false);
+      return true;
+    }
+    return original.handle(packet);
+  }
 
   @Override
   public void disconnected() {
+    if (!serverConnection.getPlayer().getPhase().consideredComplete()) {
+      serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(),
+              Disconnect.create(Component.text("Probably mismatched mods"),
+                      serverConnection.getPlayer().getProtocolVersion()),false);
+      return;
+    }
     original.disconnected();
   }
 

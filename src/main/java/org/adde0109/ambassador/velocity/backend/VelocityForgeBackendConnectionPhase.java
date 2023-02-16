@@ -10,6 +10,7 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import io.netty.channel.PendingWriteQueue;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
+import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
   NOT_STARTED() {
@@ -24,7 +25,8 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
       serverCon.setConnectionPhase(VelocityForgeBackendConnectionPhase.COMPLETE);
 
       MinecraftConnection connection = player.getConnection();
-      connection.getChannel().pipeline().remove(ForgeConstants.SERVER_SUCCESS_LISTENER);
+      ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
+              .sendPacket();
       connection.setState(StateRegistry.PLAY);
     }
   },

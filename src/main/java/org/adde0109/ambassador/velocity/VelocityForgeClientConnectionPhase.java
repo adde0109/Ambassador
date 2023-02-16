@@ -45,14 +45,22 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
       //We unregister so no plugin sees this client while the client is being reset.
       ((VelocityServer) Ambassador.getInstance().server).unregisterConnection(player);
+      player.getConnectedServer().getConnection().getChannel().config().setAutoRead(false);
 
       connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER, ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
       connection.getChannel().pipeline().addLast(ForgeConstants.FORGE_HANDSHAKE_HOLDER,new OutboundForgeHandshakeHolder());
+
+      player.getConnection().setSessionHandler(new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(),player));
 
       connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
 
       player.setPhase(WAITING_RESET);
       WAITING_RESET.onTransitionToNewPhase(player);
+    }
+
+    @Override
+    public boolean consideredComplete() {
+      return true;
     }
   },
   WAITING_RESET {
@@ -77,8 +85,6 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
           player.setPhase(NOT_STARTED);
           //Send all held messages
           player.getConnection().getChannel().pipeline().remove(ForgeConstants.FORGE_HANDSHAKE_HOLDER);
-
-          player.getConnection().setSessionHandler(new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(),player));
         }
         return true;
       } else {
@@ -108,6 +114,13 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
   VelocityForgeClientConnectionPhase nextPhase() {
     return this;
   }
+
+  @Override
+  public boolean consideredComplete() {
+    return false;
+  }
+
+
 
 /*
   public void handleKick(KickedFromServerEvent event) {

@@ -8,6 +8,12 @@ import io.netty.channel.ChannelPromise;
 public class OutboundSuccessHolder extends ChannelOutboundHandlerAdapter {
 
   private ServerLoginSuccess packet;
+  private ChannelHandlerContext ctx;
+
+  @Override
+  public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+    this.ctx = ctx;
+  }
 
   @Override
   public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
@@ -18,11 +24,8 @@ public class OutboundSuccessHolder extends ChannelOutboundHandlerAdapter {
     }
   }
 
-  @Override
-  public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-    if (ctx.channel().isActive()) {
-      ctx.write(packet, ctx.voidPromise());
-      ctx.flush();
-    }
+  public void sendPacket() {
+    ctx.write(packet, ctx.voidPromise());
+    ctx.flush();
   }
 }
