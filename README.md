@@ -20,3 +20,6 @@ This plugin is right now in its alpha stage and should not be used in production
 * Server switching.
 * Server switching using kick to reset the client.
 * Server switching using client mod: https://github.com/Just-Chaldea/Forge-Client-Reset-Packet
+
+### Discord
+https://discord.gg/Vusz9pBNyJ
