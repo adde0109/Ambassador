@@ -9,7 +9,7 @@ This plugin is right now in its alpha stage and should not be used in production
 ### On the Velocity proxy side:
 1. Download and install this plugin to your proxy.
 
-### On the Forge server side (Only for modern forwarding):
+### On the Forge server side (Only required if you want modern forwarding):
 1. Download and install "Ambassador-Forge" as a mod to your Forge server. (Found at https://github.com/adde0109/Ambassador-Forge)
 2. Start the server.
 3. If you wish to use modern forwarding, close the server and open "ambassador-common.toml" in the config folder and put your forwarding secret in the "forwardingSecret" field.
