@@ -3,14 +3,9 @@ package org.adde0109.ambassador.velocity.backend;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
-import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
-import io.netty.channel.PendingWriteQueue;
-import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
-import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
   NOT_STARTED() {
@@ -23,11 +18,15 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     @Override
     public void onLoginSuccess(VelocityServerConnection serverCon, ConnectedPlayer player) {
       serverCon.setConnectionPhase(VelocityForgeBackendConnectionPhase.COMPLETE);
+    }
 
-      MinecraftConnection connection = player.getConnection();
-      ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
-              .sendPacket();
-      connection.setState(StateRegistry.PLAY);
+    @Override
+    void onTransitionToNewPhase(VelocityServerConnection connection) {
+      MinecraftConnection mc = connection.getConnection();
+      if (mc != null) {
+        //This looks ugly. But unless the player didn't have a FML marker, we're fine.
+        mc.setType(connection.getPlayer().getConnection().getType());
+      }
     }
   },
 
@@ -45,7 +44,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
 
   public void handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) {
 
-    VelocityForgeBackendConnectionPhase newPhase = nextPhase();
+    VelocityForgeBackendConnectionPhase newPhase = getNewPhase(server,message);
 
     server.setConnectionPhase(newPhase);
 
@@ -56,11 +55,24 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
   }
 
   public void onLoginSuccess(VelocityServerConnection serverCon, ConnectedPlayer player) {
-
   }
+
+  void onTransitionToNewPhase(VelocityServerConnection connection) {
+  }
+
   VelocityForgeBackendConnectionPhase nextPhase() {
     return this;
   }
+
+  private VelocityForgeBackendConnectionPhase getNewPhase(VelocityServerConnection serverConnection,
+                                                       LoginPluginMessage packet) {
+    VelocityForgeBackendConnectionPhase phaseToTransitionTo = nextPhase();
+    if (phaseToTransitionTo != this) {
+      phaseToTransitionTo.onTransitionToNewPhase(serverConnection);
+    }
+    return phaseToTransitionTo;
+  }
+
   public boolean consideredComplete() {
     return false;
   }

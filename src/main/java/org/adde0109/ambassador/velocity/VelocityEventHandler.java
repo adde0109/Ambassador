@@ -7,7 +7,6 @@ import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.*;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import org.adde0109.ambassador.Ambassador;
@@ -36,11 +35,6 @@ public class VelocityEventHandler {
       VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(), player);
       player.getConnection().eventLoop().submit(() -> player.getConnection().setSessionHandler(sessionHandler));
     }
-    continuation.resume();
-  }
-
-  @Subscribe(order = PostOrder.LAST)
-  public void onServerPreConnectEvent(ServerPreConnectEvent event, Continuation continuation) {
     continuation.resume();
   }
 

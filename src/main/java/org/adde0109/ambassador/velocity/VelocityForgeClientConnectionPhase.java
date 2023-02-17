@@ -1,7 +1,5 @@
 package org.adde0109.ambassador.velocity;
 
-import com.velocitypowered.api.event.player.KickedFromServerEvent;
-import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -10,7 +8,6 @@ import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.StateRegistry;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import io.netty.buffer.Unpooled;
@@ -18,8 +15,10 @@ import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.forge.ForgeConstants;
+import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
 import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.velocity.client.OutboundForgeHandshakeHolder;
+import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
@@ -45,10 +44,14 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
       //We unregister so no plugin sees this client while the client is being reset.
       ((VelocityServer) Ambassador.getInstance().server).unregisterConnection(player);
-      player.getConnectedServer().getConnection().getChannel().config().setAutoRead(false);
+      if (player.getConnectedServer() != null) {
+        player.getConnectedServer().disconnect();
+        player.setConnectedServer(null);
+      }
+      player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
 
       connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER, ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
-      connection.getChannel().pipeline().addLast(ForgeConstants.FORGE_HANDSHAKE_HOLDER,new OutboundForgeHandshakeHolder());
+      connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER, ForgeConstants.FORGE_HANDSHAKE_HOLDER,new OutboundForgeHandshakeHolder());
 
       player.getConnection().setSessionHandler(new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(),player));
 
@@ -85,6 +88,14 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
           player.setPhase(NOT_STARTED);
           //Send all held messages
           player.getConnection().getChannel().pipeline().remove(ForgeConstants.FORGE_HANDSHAKE_HOLDER);
+          player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(true);
+
+          if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
+            MinecraftConnection connection = player.getConnection();
+            ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
+                    .sendPacket();
+            connection.setState(StateRegistry.PLAY);
+          }
         }
         return true;
       } else {
@@ -96,12 +107,13 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
 
 
-  public ServerConnection internalServerConnection;
+  public boolean vanillaMode = true;
 
   public boolean handle(ConnectedPlayer player, LoginPluginResponse response, VelocityServerConnection server) {
     player.setPhase(nextPhase());
 
     player.getConnectionInFlight().getConnection().write(response.retain());
+    vanillaMode = false;
     return true;
   }
 
