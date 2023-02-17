@@ -1,11 +1,10 @@
-package org.adde0109.ambassador.velocity.backend;
+package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
-import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
   NOT_STARTED() {

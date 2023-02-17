@@ -5,7 +5,7 @@ import com.velocitypowered.proxy.connection.backend.TransitionSessionHandler;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.JoinGame;
-import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
+import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
 
 public class ForgePlaySessionHandler implements MinecraftSessionHandler {
 

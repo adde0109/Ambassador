@@ -8,6 +8,7 @@ import com.velocitypowered.proxy.network.ServerChannelInitializer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
+import org.adde0109.ambassador.velocity.client.VelocityHandshakeSessionHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;

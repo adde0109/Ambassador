@@ -3,25 +3,8 @@ package org.adde0109.ambassador.forge;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
-import com.velocitypowered.api.proxy.server.ServerPing;
-import com.velocitypowered.api.util.ModInfo;
-import java.util.*;
-
-import com.velocitypowered.api.util.UuidUtils;
-import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.PlayerInfoForwarding;
-import com.velocitypowered.proxy.config.VelocityConfiguration;
-import com.velocitypowered.proxy.connection.MinecraftConnection;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.StateRegistry;
-import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
-import io.netty.buffer.ByteBuf;
-import org.adde0109.ambassador.velocity.VelocityForgeHandshakeSessionHandler;
-import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
 
 public class ForgeHandshakeUtils {
 

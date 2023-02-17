@@ -1,11 +1,10 @@
-package org.adde0109.ambassador.velocity;
+package org.adde0109.ambassador.velocity.client;
 
-import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
-import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import io.netty.buffer.ByteBuf;
+import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
 
 public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHandler {
   private final MinecraftSessionHandler original;

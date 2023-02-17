@@ -10,6 +10,8 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import org.adde0109.ambassador.Ambassador;
+import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
+import org.adde0109.ambassador.velocity.client.VelocityForgeHandshakeSessionHandler;
 
 public class VelocityEventHandler {
 

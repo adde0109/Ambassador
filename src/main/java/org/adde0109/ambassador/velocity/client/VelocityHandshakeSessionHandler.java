@@ -1,4 +1,4 @@
-package org.adde0109.ambassador.velocity;
+package org.adde0109.ambassador.velocity.client;
 
 import com.velocitypowered.proxy.connection.ConnectionTypes;
 import com.velocitypowered.proxy.connection.MinecraftConnection;

@@ -1,4 +1,4 @@
-package org.adde0109.ambassador.velocity;
+package org.adde0109.ambassador.forge;
 
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
@@ -13,12 +13,10 @@ import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import io.netty.buffer.Unpooled;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
-import org.adde0109.ambassador.forge.FML2CRPMResetCompleteDecoder;
-import org.adde0109.ambassador.forge.ForgeConstants;
-import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
-import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
+import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundForgeHandshakeHolder;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
+import org.adde0109.ambassador.velocity.client.VelocityForgeHandshakeSessionHandler;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;

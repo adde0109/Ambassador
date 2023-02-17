@@ -1,14 +1,5 @@
 package org.adde0109.ambassador.forge;
 
-import com.velocitypowered.api.proxy.server.RegisteredServer;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import net.kyori.adventure.text.Component;
-import org.adde0109.ambassador.Ambassador;
-import org.adde0109.ambassador.velocity.VelocityForgeClientConnectionPhase;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-
 public class FML2ClientConnectionPhase {
 
 /*

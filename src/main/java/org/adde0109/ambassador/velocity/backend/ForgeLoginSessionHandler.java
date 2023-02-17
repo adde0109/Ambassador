@@ -13,6 +13,7 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
+import org.adde0109.ambassador.forge.VelocityForgeBackendConnectionPhase;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 
 public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
@@ -47,7 +48,7 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     }
 
     ConnectedPlayer player = serverConnection.getPlayer();
-    if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
+    if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType) && player.getConnectedServer() != null) {
       player.getPhase().resetConnectionPhase(player);
     } else {
       MinecraftConnection connection = player.getConnection();
