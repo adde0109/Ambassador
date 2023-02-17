@@ -11,7 +11,6 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import io.netty.buffer.Unpooled;
-import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundForgeHandshakeHolder;
@@ -74,7 +73,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
         Ambassador.getTemporaryForced().put(player.getUsername(), player.getConnectionInFlight().getServer(),
                 Ambassador.getInstance().config.getServerSwitchCancellationTime(), TimeUnit.SECONDS);
         //Disconnect - Reset Timeout
-        player.disconnect(Component.text(Ambassador.getInstance().config.getDisconnectResetMessage()));
+        player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage());
       }, Ambassador.getInstance().config.getResetTimeout(), TimeUnit.MILLISECONDS);
     }
     @Override

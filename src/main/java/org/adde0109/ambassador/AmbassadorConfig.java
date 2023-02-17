@@ -3,6 +3,9 @@ package org.adde0109.ambassador;
 import com.electronwill.nightconfig.core.conversion.InvalidValueException;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.google.gson.annotations.Expose;
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 import java.net.URL;
 import java.nio.file.Path;
@@ -17,6 +20,8 @@ public class AmbassadorConfig {
 
   @Expose
   private int serverSwitchCancellationTime = 120;
+
+  private net.kyori.adventure.text.@MonotonicNonNull Component messageAsAsComponent;
 
   private AmbassadorConfig(int resetTimeout, String kickResetMessage, int serverSwitchCancellationTime) {
     this.resetTimeout = resetTimeout;
@@ -63,8 +68,15 @@ public class AmbassadorConfig {
     return resetTimeout;
   }
 
-  public String getDisconnectResetMessage() {
-    return disconnectResetMessage;
+  public net.kyori.adventure.text.Component getDisconnectResetMessage() {
+    if (messageAsAsComponent == null) {
+      if (disconnectResetMessage.startsWith("{")) {
+        messageAsAsComponent = GsonComponentSerializer.gson().deserialize(disconnectResetMessage);
+      } else {
+        messageAsAsComponent = LegacyComponentSerializer.legacyAmpersand().deserialize(disconnectResetMessage);
+      }
+    }
+    return messageAsAsComponent;
   }
 
   public int getServerSwitchCancellationTime() {
