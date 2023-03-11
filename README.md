@@ -13,5 +13,12 @@ Unlike other solutions, this plugin does not require any special modifications t
 * Server switching using kick to reset the client with configureble message and switch timeout.
 * Server switching using client mod for instant server switching: https://github.com/Just-Chaldea/Forge-Client-Reset-Packet 
 
+## Stuck on "Negotiating":
+Why: This is happening because the client finishes the reset after the reset-timeout time has passed and thus, the proxy disconnects the client and the screen. Usually because to the client took too long to reset the forge registries.
+
+Fix: Increase the "reset-timeout" in the config. 
+If you know that everyone who is connecting to the server is using the packet client reset packet mod (Pixelmon include this mod), you can set this value to the max (Velocity's timout found in Velocity.toml).
+This timout is meant to allow for people that doesn't have the mod to get disconnected more quickly.
+
 ## Discord
 https://discord.gg/Vusz9pBNyJ
