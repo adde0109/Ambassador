@@ -1,7 +1,7 @@
 plugins {
     java
     idea
-    id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "org.adde0109"
@@ -21,6 +21,7 @@ dependencies {
     implementation("org.bstats:bstats-velocity:3.0.1")
     implementation("org.apache.commons:commons-collections4:4.4")
     annotationProcessor("com.velocitypowered:velocity-api")
+    compileOnly("org.jetbrains:annotations:24.0.1")
 }
 
 tasks {
