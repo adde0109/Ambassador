@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.velocitypowered:velocity-api:3.2.0-SNAPSHOT")
+    compileOnly("com.velocitypowered:velocity-api:3.2.0-SNAPSHOT")
     implementation("com.electronwill.night-config:toml:3.6.6")
     implementation("org.bstats:bstats-velocity:3.0.1")
     implementation("org.apache.commons:commons-collections4:4.4")
