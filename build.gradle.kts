@@ -17,9 +17,9 @@ repositories {
 
 dependencies {
     compileOnly("com.velocitypowered:velocity-api:3.2.0-SNAPSHOT")
-    implementation("com.electronwill.night-config:toml:3.6.6")
+    compileOnly("com.electronwill.night-config:toml:3.6.6")
     implementation("org.bstats:bstats-velocity:3.0.1")
-    implementation("org.apache.commons:commons-collections4:4.4")
+    compileOnly("org.apache.commons:commons-collections4:4.4")
     annotationProcessor("com.velocitypowered:velocity-api:3.2.0-SNAPSHOT")
     compileOnly("org.jetbrains:annotations:24.0.1")
 }
@@ -28,6 +28,11 @@ tasks {
     shadowJar {
         relocate("org.bstats", "org.adde0109.ambassador")
         archiveBaseName.set("Ambassador-Velocity")
+        archiveClassifier.set("")
+    }
+    jar.get().isEnabled = false
+    build {
+        dependsOn(shadowJar)
     }
 }
 
