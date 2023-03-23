@@ -74,6 +74,7 @@ public class Ambassador {
   @Subscribe
   public void onPlayerChooseInitialServerEvent(PlayerChooseInitialServerEvent event, Continuation continuation) {
     //Only handle Forge connections
+    if (forgeHandshakeHandler == null) return;
     if((event.getInitialServer().isPresent()) && (forgeHandshakeHandler.getForgeConnection(event.getPlayer()).isPresent())) {
       //Forge client
       ForgeConnection forgeConnection = forgeHandshakeHandler.getForgeConnection(event.getPlayer()).get();
@@ -86,7 +87,6 @@ public class Ambassador {
   }
 
   private void initMetrics() {
-    Metrics metrics = metricsFactory.make(this, 15655);
-    metrics.addCustomChart(new SingleLineChart("modern_forge_players", () -> (forgeHandshakeHandler != null) ? forgeHandshakeHandler.getAmountOfForgeConnections() : 0));
+    metricsFactory.make(this, 15655).addCustomChart(new SingleLineChart("modern_forge_players", () -> (forgeHandshakeHandler != null) ? forgeHandshakeHandler.getAmountOfForgeConnections() : 0));
   }
 }
