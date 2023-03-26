@@ -1,6 +1,5 @@
 package org.adde0109.ambassador.forge;
 
-import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
@@ -52,7 +51,6 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER, ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
       connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER, ForgeConstants.FORGE_HANDSHAKE_HOLDER,new OutboundForgeHandshakeHolder());
 
-      //player.getConnection().setSessionHandler(new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(),player));
 
       connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
 
@@ -136,15 +134,4 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
   }
 
 
-
-/*
-  public void handleKick(KickedFromServerEvent event) {
-    //If kicked before the client has entered PLAY and has been reset.
-    if (lastKnownWorking != null && !(event.getResult() instanceof KickedFromServerEvent.RedirectPlayer)) {
-      net.kyori.adventure.text.Component reason = event.getServerKickReason().orElse(null);
-      event.setResult(KickedFromServerEvent.RedirectPlayer.create(lastKnownWorking,reason));
-      lastKnownWorking = null;
-    }
-  }
- */
 }

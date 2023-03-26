@@ -42,16 +42,6 @@ public class VelocityEventHandler {
     continuation.resume();
   }
 
-  @Subscribe
-  public void onPostLoginEvent(PostLoginEvent event, Continuation continuation) {
-    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
-    if (player.getPhase() instanceof VelocityForgeClientConnectionPhase phase) {
-      //VelocityForgeHandshakeSessionHandler sessionHandler = new VelocityForgeHandshakeSessionHandler(player.getConnection().getSessionHandler(), player);
-      //player.getConnection().eventLoop().submit(() -> player.getConnection().setSessionHandler(sessionHandler));
-    }
-    continuation.resume();
-  }
-
   @Subscribe(order = PostOrder.LAST)
   public void onPlayerChooseInitialServerEvent(PlayerChooseInitialServerEvent event, Continuation continuation) {
     ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
