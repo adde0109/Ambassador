@@ -76,7 +76,8 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void disconnected() {
-    if (!serverConnection.getPlayer().getPhase().consideredComplete()) {
+    //TODO:Change this
+    if (!serverConnection.getPhase().consideredComplete()) {
       serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(),
               Disconnect.create(Component.text("Probably mismatched mods"),
                       serverConnection.getPlayer().getProtocolVersion()),false);

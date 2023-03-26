@@ -7,7 +7,7 @@ import io.netty.buffer.ByteBuf;
 import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
 
 public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHandler {
-  private final MinecraftSessionHandler original;
+  /*private final MinecraftSessionHandler original;
   private final ConnectedPlayer player;
 
   public VelocityForgeHandshakeSessionHandler(MinecraftSessionHandler original, ConnectedPlayer player) {
@@ -37,4 +37,5 @@ public class VelocityForgeHandshakeSessionHandler implements MinecraftSessionHan
   public MinecraftSessionHandler getOriginal() {
     return this.original;
   }
+   */
 }

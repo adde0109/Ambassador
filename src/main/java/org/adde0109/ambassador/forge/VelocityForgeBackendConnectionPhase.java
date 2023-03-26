@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
   NOT_STARTED() {
@@ -51,6 +52,10 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
     clientPhase.resetConnectionPhase(player);
     player.getConnection().write(message.retain());
+
+    ForgeLoginWrapperDecoder decoder = (ForgeLoginWrapperDecoder) player.getConnection()
+            .getChannel().pipeline().get(ForgeConstants.FORGE_HANDSHAKE_DECODER);
+    decoder.registerLoginWrapperID(message.getId());
   }
 
   public void onLoginSuccess(VelocityServerConnection serverCon, ConnectedPlayer player) {
