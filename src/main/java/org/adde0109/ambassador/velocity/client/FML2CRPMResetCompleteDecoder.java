@@ -6,6 +6,8 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import org.adde0109.ambassador.forge.packet.GenericForgeLoginWrapperPacket;
+import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 
 public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
 
@@ -25,7 +27,7 @@ public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
           boolean success = buf.readBoolean();
           if (id == 98) {
             try {
-              MinecraftPacket packet = new LoginPluginResponse(id,success,buf.readRetainedSlice(buf.readableBytes()));
+              IForgeLoginWrapperPacket packet = new GenericForgeLoginWrapperPacket(buf, id);
               ctx.fireChannelRead(packet);
             } finally {
               buf.release();

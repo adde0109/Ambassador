@@ -14,6 +14,7 @@ import io.netty.buffer.Unpooled;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.packet.ModListReplyPacket;
+import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
 import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundForgeHandshakeHolder;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
@@ -50,7 +51,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
       connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER, ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
       connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER, ForgeConstants.FORGE_HANDSHAKE_HOLDER,new OutboundForgeHandshakeHolder());
-
+      ((ForgeLoginWrapperDecoder) connection.getChannel().pipeline().get(ForgeConstants.FORGE_HANDSHAKE_DECODER)).registerLoginWrapperID(98);
 
       connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
 

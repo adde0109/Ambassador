@@ -4,7 +4,11 @@ import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
@@ -77,8 +81,21 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     return phaseToTransitionTo;
   }
 
+  @Override
+  public boolean handle(VelocityServerConnection server, ConnectedPlayer player, PluginMessage message) {
+    if (message.getChannel().equals("ambassador:commands")) {
+      AvailableCommands packet = new AvailableCommands();
+      packet.decode(message.content(), ProtocolUtils.Direction.CLIENTBOUND,server.getConnection().getProtocolVersion());
+      server.getConnection().getSessionHandler().handle(packet);
+      return true;
+    }
+    return false;
+  }
+
   public boolean consideredComplete() {
     return false;
   }
+
+
 
 }
