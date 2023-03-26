@@ -4,11 +4,12 @@ import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
+import org.adde0109.ambassador.forge.pipeline.CommandDecoderErrorCatcher;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
@@ -22,6 +23,10 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     @Override
     public void onLoginSuccess(VelocityServerConnection serverCon, ConnectedPlayer player) {
       serverCon.setConnectionPhase(VelocityForgeBackendConnectionPhase.COMPLETE);
+
+      serverCon.getConnection().getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER,
+              ForgeConstants.COMMAND_ERROR_CATCHER,
+              new CommandDecoderErrorCatcher(serverCon.getConnection().getProtocolVersion(),player));
     }
 
     @Override

@@ -10,6 +10,7 @@ public class ForgeConstants {
   public static final String FORGE_HANDSHAKE_HOLDER = "ambassador-forge-handshake-holder";
   public static final String FORGE_HANDSHAKE_DECODER = "ambassador-forge-decoder";
   public static final String FORGE_HANDSHAKE_HANDLER = "ambassador-forge-handler";
+  public static final String COMMAND_ERROR_CATCHER = "ambassador-command-catcher";
 
   public static final String FML2Marker = "\0FML2\0";
   public static final String FML3Marker = "\0FML3\0";

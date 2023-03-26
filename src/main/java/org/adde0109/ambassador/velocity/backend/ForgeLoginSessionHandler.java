@@ -80,7 +80,7 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
   public void disconnected() {
     if (!serverConnection.getPhase().consideredComplete()) {
       serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(),
-              Disconnect.create(Component.text("Backend server disconnected during handshake could be: " +
+              Disconnect.create(Component.text("Ambassador: Backend server disconnected during handshake could be: " +
                               "mismatched mods OR bad player-forwarding config"),
                       serverConnection.getPlayer().getProtocolVersion()),false);
       return;
