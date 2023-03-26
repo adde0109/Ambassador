@@ -11,6 +11,7 @@ import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import net.kyori.adventure.text.Component;
+import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
 import org.adde0109.ambassador.forge.VelocityForgeBackendConnectionPhase;
@@ -55,6 +56,7 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
       ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
               .sendPacket();
       connection.setState(StateRegistry.PLAY);
+      ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
     }
 
     original.handle(packet);

@@ -93,6 +93,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
             ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
                     .sendPacket();
             connection.setState(StateRegistry.PLAY);
+            ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
           }
         }
         return true;
