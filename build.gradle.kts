@@ -1,7 +1,7 @@
 plugins {
     java
     idea
-    id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "org.adde0109"
@@ -20,11 +20,11 @@ dependencies {
     compileOnly("com.velocitypowered:velocity-proxy")
     annotationProcessor("com.velocitypowered:velocity-api")
     compileOnly("com.electronwill.night-config:toml:3.6.6")
-    implementation("org.bstats:bstats-velocity:3.0.0")
-    compileOnly("io.netty:netty-buffer:4.1.86.Final")
-    compileOnly("io.netty:netty-transport:4.1.86.Final")
-    compileOnly("io.netty:netty-codec:4.1.86.Final")
-    compileOnly("io.netty:netty-handler:4.1.86.Final")
+    implementation("org.bstats:bstats-velocity:3.0.1")
+    compileOnly("io.netty:netty-buffer:4.1.90.Final")
+    compileOnly("io.netty:netty-transport:4.1.90.Final")
+    compileOnly("io.netty:netty-codec:4.1.90.Final")
+    compileOnly("io.netty:netty-handler:4.1.90.Final")
 }
 
 tasks {
