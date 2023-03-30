@@ -9,13 +9,14 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
-import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.CorruptedFrameException;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.adde0109.ambassador.Ambassador;
 import org.jetbrains.annotations.NotNull;
 
 public class CommandDecoderErrorCatcher extends ChannelInboundHandlerAdapter {
@@ -23,6 +24,7 @@ public class CommandDecoderErrorCatcher extends ChannelInboundHandlerAdapter {
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
 
   private final ConnectedPlayer player;
+  private boolean sentWarning = false;
 
   public CommandDecoderErrorCatcher(ProtocolVersion protocolVersion, ConnectedPlayer player) {
     this.registry = StateRegistry.PLAY.getProtocolRegistry(ProtocolUtils.Direction.CLIENTBOUND, protocolVersion);
@@ -46,10 +48,13 @@ public class CommandDecoderErrorCatcher extends ChannelInboundHandlerAdapter {
           ((MinecraftDecoder) ctx.pipeline().get(Connections.MINECRAFT_DECODER)).channelRead(ctx, msg);
         } catch (QuietRuntimeException | CorruptedFrameException e) {
           RegisteredServer server = player.getConnectedServer().getServer();
-          player.handleConnectionException(server,
-                  Disconnect.create(Component.text("Ambassador: Unsupported command argument type detected! " +
-                                  "Please install Proxy-Compatible-Forge mod on this backend server."),
-                          player.getProtocolVersion()),true);
+          if (!Ambassador.getInstance().config.isSilenceWarnings() && !sentWarning) {
+            player.sendMessage(Component.text("[Ambassador Warning]: Unsupported command argument type detected! " +
+                    "Please install Proxy-Compatible-Forge mod on this backend server to have access to commands. " +
+                    "This message can be silenced in the ambassador.toml config file.", NamedTextColor.YELLOW));
+            sentWarning = true;
+          }
+
         }
 
       } else {

@@ -1,5 +1,5 @@
 # Do not change this
-config-version = "1.0"
+config-version = "1.1"
 
 # How long to wait for the client to reset before disconnecting (In milliseconds)
 reset-timeout = 1000
@@ -8,3 +8,4 @@ reset-timeout = 1000
 disconnect-reset-message = "&6Please reconnect"
 # How much time the player has to reconnect before canceling the server switch. (In seconds)
 server-switch-cancellation-time = 120
+silence-warnings = false

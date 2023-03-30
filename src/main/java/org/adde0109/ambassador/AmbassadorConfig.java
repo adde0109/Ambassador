@@ -21,18 +21,22 @@ public class AmbassadorConfig {
   @Expose
   private int serverSwitchCancellationTime = 120;
 
+  @Expose
+  private boolean silenceWarnings = false;
+
   private net.kyori.adventure.text.@MonotonicNonNull Component messageAsAsComponent;
 
-  private AmbassadorConfig(int resetTimeout, String kickResetMessage, int serverSwitchCancellationTime) {
+  private AmbassadorConfig(int resetTimeout, String kickResetMessage, int serverSwitchCancellationTime, boolean silenceWarnings) {
     this.resetTimeout = resetTimeout;
     this.disconnectResetMessage = kickResetMessage;
     this.serverSwitchCancellationTime = serverSwitchCancellationTime;
+    this.silenceWarnings = silenceWarnings;
   };
 
   public void validate() {
     final int connectionTimeout = Ambassador.getInstance().server.getConfiguration().getConnectTimeout();
-    if (resetTimeout >= connectionTimeout) {
-      throw new InvalidValueException("'reset-timeout' can't be more than nor equal to 'connection-timeout': reset-timeout=" + resetTimeout + " connection-timeout=" + connectionTimeout);
+    if (resetTimeout > connectionTimeout) {
+      throw new InvalidValueException("'reset-timeout' can't be more than to 'connection-timeout': reset-timeout=" + resetTimeout + " connection-timeout=" + connectionTimeout);
     }
     if (resetTimeout <= 0) {
       throw new InvalidValueException("'reset-timeout' can't be less than nor equal to zero: reset-timeout=" + resetTimeout);
@@ -57,11 +61,25 @@ public class AmbassadorConfig {
             .build();
     config.load();
 
+    double configVersion;
+    try {
+      configVersion = Double.parseDouble(config.getOrElse("config-version", "1.0"));
+    } catch (NumberFormatException e) {
+      configVersion = 1.0;
+    }
+
+    if (configVersion < 1.1) {
+      config.set("silence-warnings", false);
+      config.set("config-version", "1.1");
+    }
+
     int resetTimeout = config.getIntOrElse("reset-timeout", 3000);
     String kickResetMessage = config.getOrElse("disconnect-reset-message", "Please reconnect");
     int serverSwitchCancellationTime = config.getIntOrElse("server-switch-cancellation-time", 120000);
 
-    return new AmbassadorConfig(resetTimeout, kickResetMessage, serverSwitchCancellationTime);
+    boolean silenceWarnings = config.getOrElse("silence-warnings", false);
+
+    return new AmbassadorConfig(resetTimeout, kickResetMessage, serverSwitchCancellationTime, silenceWarnings);
   }
 
   public int getResetTimeout() {
@@ -81,5 +99,9 @@ public class AmbassadorConfig {
 
   public int getServerSwitchCancellationTime() {
     return serverSwitchCancellationTime;
+  }
+
+  public boolean isSilenceWarnings() {
+    return silenceWarnings;
   }
 }
