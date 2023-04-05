@@ -7,6 +7,7 @@ import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.*;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -39,6 +40,13 @@ public class VelocityEventHandler {
                 ForgeConstants.FORGE_HANDSHAKE_HANDLER, new ForgeLoginWrapperHandler(player));
       });
     }
+    continuation.resume();
+  }
+
+  @Subscribe(order = PostOrder.FIRST)
+  public void onPostLoginEvent(PostLoginEvent event, Continuation continuation) {
+    if (((ConnectedPlayer) event.getPlayer()).getPhase() instanceof VelocityForgeClientConnectionPhase)
+      ((VelocityServer) Ambassador.getInstance().server).unregisterConnection((ConnectedPlayer) event.getPlayer());
     continuation.resume();
   }
 
