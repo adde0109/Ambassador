@@ -49,9 +49,10 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     }
 
     ConnectedPlayer player = serverConnection.getPlayer();
-    if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType) && player.getConnectedServer() != null) {
+    if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType) && player.getConnectedServer() != null &&
+            player.getConnectedServer().getConnection().getType() instanceof  ForgeFMLConnectionType) {
       player.getPhase().resetConnectionPhase(player);
-    } else {
+    } else if (player.getConnectedServer() == null) {
       MinecraftConnection connection = player.getConnection();
       ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
               .sendPacket();
