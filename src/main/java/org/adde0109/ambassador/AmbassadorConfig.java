@@ -34,9 +34,9 @@ public class AmbassadorConfig {
   };
 
   public void validate() {
-    final int connectionTimeout = Ambassador.getInstance().server.getConfiguration().getConnectTimeout();
-    if (resetTimeout > connectionTimeout) {
-      throw new InvalidValueException("'reset-timeout' can't be more than to 'connection-timeout': reset-timeout=" + resetTimeout + " connection-timeout=" + connectionTimeout);
+    final int connectionTimeout = Ambassador.getInstance().server.getConfiguration().getReadTimeout();
+    if (resetTimeout >= connectionTimeout) {
+      throw new InvalidValueException("'reset-timeout' can't be more than nor equal to 'read-timeout': reset-timeout=" + resetTimeout + " connection-timeout=" + connectionTimeout);
     }
     if (resetTimeout <= 0) {
       throw new InvalidValueException("'reset-timeout' can't be less than nor equal to zero: reset-timeout=" + resetTimeout);
