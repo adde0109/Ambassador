@@ -75,7 +75,7 @@ public class AmbassadorConfig {
 
     int resetTimeout = config.getIntOrElse("reset-timeout", 3000);
     String kickResetMessage = config.getOrElse("disconnect-reset-message", "Please reconnect");
-    int serverSwitchCancellationTime = config.getIntOrElse("server-switch-cancellation-time", 120000);
+    int serverSwitchCancellationTime = config.getIntOrElse("server-switch-cancellation-time", 120);
 
     boolean silenceWarnings = config.getOrElse("silence-warnings", false);
 
