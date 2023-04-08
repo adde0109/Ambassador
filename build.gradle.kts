@@ -5,10 +5,14 @@ plugins {
 }
 
 group = "org.adde0109"
-version = "1.3.1-beta-rc4"
+version = "1.3.1-beta"
 
 repositories {
     mavenCentral()
+    maven {
+        name = "papermc"
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
 }
 
 dependencies {

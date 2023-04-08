@@ -11,6 +11,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
@@ -47,6 +48,7 @@ public class VelocityEventHandler {
   public void onPostLoginEvent(PostLoginEvent event, Continuation continuation) {
     if (((ConnectedPlayer) event.getPlayer()).getPhase() instanceof VelocityForgeClientConnectionPhase)
       ((VelocityServer) Ambassador.getInstance().server).unregisterConnection((ConnectedPlayer) event.getPlayer());
+    event.getPlayer().sendMessage(Component.text("test"));
     continuation.resume();
   }
 

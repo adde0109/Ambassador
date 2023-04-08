@@ -57,6 +57,7 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
       ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
               .sendPacket();
       connection.setState(StateRegistry.PLAY);
+      connection.getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
       ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
     }
 

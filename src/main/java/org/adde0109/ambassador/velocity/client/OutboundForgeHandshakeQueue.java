@@ -1,10 +1,9 @@
 package org.adde0109.ambassador.velocity.client;
 
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
-import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import io.netty.channel.*;
 
-public class OutboundForgeHandshakeHolder extends ChannelOutboundHandlerAdapter {
+public class OutboundForgeHandshakeQueue extends ChannelOutboundHandlerAdapter {
 
   PendingWriteQueue writeQueue;
 

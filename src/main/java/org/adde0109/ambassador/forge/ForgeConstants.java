@@ -7,6 +7,7 @@ public class ForgeConstants {
   public static final String MARKER_ADDER = "FML2/3 Marker Adder";
   public static final String RESET_LISTENER = "ambassador-reset-listener";
   public static final String SERVER_SUCCESS_LISTENER = "ambassador-server-success-listener";
+  public static final String PLUGIN_PACKET_QUEUE = "ambassador-plugin-generated-packet-queue";
   public static final String FORGE_HANDSHAKE_HOLDER = "ambassador-forge-handshake-holder";
   public static final String FORGE_HANDSHAKE_DECODER = "ambassador-forge-decoder";
   public static final String FORGE_HANDSHAKE_HANDLER = "ambassador-forge-handler";
