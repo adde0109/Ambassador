@@ -48,7 +48,6 @@ public class VelocityEventHandler {
   public void onPostLoginEvent(PostLoginEvent event, Continuation continuation) {
     if (((ConnectedPlayer) event.getPlayer()).getPhase() instanceof VelocityForgeClientConnectionPhase)
       ((VelocityServer) Ambassador.getInstance().server).unregisterConnection((ConnectedPlayer) event.getPlayer());
-    event.getPlayer().sendMessage(Component.text("test"));
     continuation.resume();
   }
 
