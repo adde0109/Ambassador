@@ -1,5 +1,6 @@
 package org.adde0109.ambassador.velocity.backend;
 
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
@@ -15,6 +16,7 @@ import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
 import org.adde0109.ambassador.forge.VelocityForgeBackendConnectionPhase;
+import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 
 public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
@@ -49,15 +51,20 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     }
 
     ConnectedPlayer player = serverConnection.getPlayer();
-    if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType) && player.getConnectedServer() != null &&
-            player.getConnectedServer().getConnection().getType() instanceof  ForgeFMLConnectionType) {
+    if (player.getConnectedServer() != null && player.getConnectedServer().getConnection().getType() instanceof ForgeFMLConnectionType) {
+      //Forge -> vanilla
+      //Has not already been reset
+      //Not for Vanilla -> Vanilla
       player.getPhase().resetConnectionPhase(player);
-    } else if (player.getConnectedServer() == null) {
+    } else if (player.getConnection().getState() == StateRegistry.LOGIN) {
+      //Initial vanilla
+      //Vanilla -> Forge
       MinecraftConnection connection = player.getConnection();
       ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
               .sendPacket();
       connection.setState(StateRegistry.PLAY);
-      connection.getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
+      if (connection.getChannel().pipeline().toMap().containsKey(ForgeConstants.PLUGIN_PACKET_QUEUE))
+        connection.getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
       ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
     }
 
@@ -80,12 +87,17 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void disconnected() {
-    if (!serverConnection.getPhase().consideredComplete()) {
-      serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(),
-              Disconnect.create(Component.text("Ambassador: Backend server disconnected during handshake could be: " +
-                              "mismatched mods OR bad player-forwarding config"),
-                      serverConnection.getPlayer().getProtocolVersion()),false);
-      return;
+      if (!serverConnection.getPhase().consideredComplete()
+              && serverConnection.getPlayer().getPhase() != VelocityForgeClientConnectionPhase.NOT_STARTED) {
+        int protocolVersion = serverConnection.getConnection().getProtocolVersion().getProtocol();
+        if (protocolVersion <= ProtocolVersion.MINECRAFT_1_16_4.getProtocol()) {
+        serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(),
+                Disconnect.create(Component.text("Ambassador: Backend server disconnected during handshake." +
+                                ((protocolVersion <= ProtocolVersion.MINECRAFT_1_16_4.getProtocol()) ?
+                                        "Could be mismatched mods." : "")),
+                        serverConnection.getPlayer().getProtocolVersion()),false);
+        return;
+        }
     }
     original.disconnected();
   }

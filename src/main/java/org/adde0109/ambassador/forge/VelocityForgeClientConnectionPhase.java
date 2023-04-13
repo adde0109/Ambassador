@@ -89,6 +89,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
           player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(true);
 
           if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
+            //Forge -> Vanilla
             MinecraftConnection connection = player.getConnection();
             ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
                     .sendPacket();

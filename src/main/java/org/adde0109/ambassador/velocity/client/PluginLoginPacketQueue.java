@@ -1,8 +1,14 @@
 package org.adde0109.ambassador.velocity.client;
 
+import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
+import com.velocitypowered.proxy.protocol.util.DeferredByteBufHolder;
 import io.netty.channel.*;
 import io.netty.handler.codec.EncoderException;
+import io.netty.util.ReferenceCountUtil;
 
 
 public class PluginLoginPacketQueue extends ChannelOutboundHandlerAdapter {
@@ -16,13 +22,17 @@ public class PluginLoginPacketQueue extends ChannelOutboundHandlerAdapter {
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-        MinecraftEncoder encoder = ctx.pipeline().get(MinecraftEncoder.class);
-        try {
-            encoder.write(ctx, msg, promise);
-        } catch (EncoderException e) {
-            if (e.getCause() instanceof IllegalArgumentException) {
-                queue.add(msg,promise);
+        MinecraftConnection connection = ctx.pipeline().get(MinecraftConnection.class);
+        if (connection.getState() == StateRegistry.LOGIN && msg instanceof MinecraftPacket packet) {
+            try {
+                StateRegistry.LOGIN.getProtocolRegistry(ProtocolUtils.Direction.CLIENTBOUND ,
+                        connection.getProtocolVersion()).getPacketId(packet);
+                ctx.write(msg,promise);
+            } catch (IllegalArgumentException e) {
+                queue.add(msg, promise);
             }
+        } else {
+            ctx.write(msg,promise);
         }
     }
 
