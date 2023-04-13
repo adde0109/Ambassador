@@ -18,6 +18,12 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     VelocityForgeBackendConnectionPhase nextPhase() {
       return WAITING_FOR_ACK;
     }
+
+    @Override
+    public boolean consideredComplete() {
+      //Safe if the server hasn't initiated the handshake yet.
+      return true;
+    }
   },
   WAITING_FOR_ACK() {
     @Override

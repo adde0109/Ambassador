@@ -2,6 +2,7 @@ package org.adde0109.ambassador.velocity.backend;
 
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.backend.*;
@@ -11,6 +12,7 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
+import com.velocitypowered.proxy.util.except.QuietRuntimeException;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.ForgeConstants;
@@ -59,12 +61,12 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     } else if (player.getConnection().getState() == StateRegistry.LOGIN) {
       //Initial vanilla
       //Vanilla -> Forge
+      //Forge -> Forge
       MinecraftConnection connection = player.getConnection();
       ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
               .sendPacket();
       connection.setState(StateRegistry.PLAY);
-      if (connection.getChannel().pipeline().toMap().containsKey(ForgeConstants.PLUGIN_PACKET_QUEUE))
-        connection.getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
+      connection.getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
       ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
     }
 
@@ -78,8 +80,8 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(Disconnect packet) {
-    if (!serverConnection.getPlayer().getPhase().consideredComplete()) {
-      serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(), packet,false);
+    if (!serverConnection.getPhase().consideredComplete()) {
+      serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(), packet, false);
       return true;
     }
     return original.handle(packet);
@@ -87,19 +89,23 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void disconnected() {
-      if (!serverConnection.getPhase().consideredComplete()
-              && serverConnection.getPlayer().getPhase() != VelocityForgeClientConnectionPhase.NOT_STARTED) {
-        int protocolVersion = serverConnection.getConnection().getProtocolVersion().getProtocol();
-        if (protocolVersion <= ProtocolVersion.MINECRAFT_1_16_4.getProtocol()) {
+    //Same as default just not safe.
+    if (!serverConnection.getPhase().consideredComplete()) {
+      if (server.getConfiguration().getPlayerInfoForwardingMode() == PlayerInfoForwarding.LEGACY) {
         serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(),
-                Disconnect.create(Component.text("Ambassador: Backend server disconnected during handshake." +
-                                ((protocolVersion <= ProtocolVersion.MINECRAFT_1_16_4.getProtocol()) ?
-                                        "Could be mismatched mods." : "")),
-                        serverConnection.getPlayer().getProtocolVersion()),false);
-        return;
-        }
+                new QuietRuntimeException("The connection to the remote server was unexpectedly closed.\n"
+                        + "This is usually because the remote server does not have BungeeCord IP forwarding "
+                        + "correctly enabled.\nSee https://velocitypowered.com/wiki/users/forwarding/ "
+                        + "for instructions on how to configure player info forwarding correctly."),
+        false);
+      } else {
+        serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(),
+                new QuietRuntimeException("The connection to the remote server was unexpectedly closed."),
+        false);
+      }
+      return;
     }
-    original.disconnected();
+      original.disconnected();
   }
 
   public void handleGeneric(MinecraftPacket packet) {

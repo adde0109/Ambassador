@@ -18,6 +18,7 @@ import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
 import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundForgeHandshakeQueue;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
+import org.adde0109.ambassador.velocity.client.PluginLoginPacketQueue;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
@@ -49,11 +50,14 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       }
       player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
 
+      //Prepare to receive reset ACK and Forge Handshake.
       connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER, ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
       connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER, ForgeConstants.FORGE_HANDSHAKE_HOLDER,new OutboundForgeHandshakeQueue());
       ((ForgeLoginWrapperDecoder) connection.getChannel().pipeline().get(ForgeConstants.FORGE_HANDSHAKE_DECODER)).registerLoginWrapperID(98);
 
+      //No more PLAY packets past this point should be sent to the client in case the reset works.
       connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
+      connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER,ForgeConstants.PLUGIN_PACKET_QUEUE, new PluginLoginPacketQueue());
 
       player.setPhase(WAITING_RESET);
       WAITING_RESET.onTransitionToNewPhase(player);
@@ -94,6 +98,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
             ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
                     .sendPacket();
             connection.setState(StateRegistry.PLAY);
+            connection.getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
             ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
           }
         }
