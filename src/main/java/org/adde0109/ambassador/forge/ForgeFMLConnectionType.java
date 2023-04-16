@@ -29,7 +29,7 @@ public class ForgeFMLConnectionType implements ConnectionType {
   @Override
   public GameProfile addGameProfileTokensIfRequired(GameProfile original, PlayerInfoForwarding forwardingType) {
     //This is meant for Arclight to parse
-    if (forwardingType == PlayerInfoForwarding.LEGACY) {
+    if (forwardingType == PlayerInfoForwarding.LEGACY || forwardingType == PlayerInfoForwarding.BUNGEEGUARD) {
       return original.addProperties(Collections.singleton(new GameProfile.Property("extraData", "\1FML" + netVersion + "\1", "")));
     } else {
       return original;
