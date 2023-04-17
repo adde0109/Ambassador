@@ -7,11 +7,17 @@ Unlike other solutions, this plugin does not require any special modifications t
 ## How to get started:
 1. Download and install this plugin to your proxy.
 2. After starting the server, configure the plugin it to your liking using the config file found in the folder "Ambassador".
-3. If you want to use modern forwarding you can use this mod on the Forge server: https://github.com/adde0109/Proxy-Compatible-Forge
+3. If you want to use player-information forwarding you can use any of these mods on the 1.13+ forge server:
+- https://github.com/adde0109/Proxy-Compatible-Forge (Modern forwarding)
+
+- https://github.com/caunt/BungeeForge (Legacy forwarding)
 
 ## Features
 * Server switching using kick to reset the client with configureble message and switch timeout.
-* Server switching using client mod for instant server switching: https://github.com/Just-Chaldea/Forge-Client-Reset-Packet 
+* Server switching using client mod for instant server switching: 
+https://github.com/Just-Chaldea/Forge-Client-Reset-Packet 
+1.18.2 and 1.19 fork:
+https://github.com/adde0109/Forge-Client-Reset-Packet
 
 ## Stuck on "Negotiating":
 Why: This is happening because the client finishes the reset after the reset-timeout time has passed and thus, the proxy disconnects the client and the screen. Usually because to the client took too long to reset the forge registries.
