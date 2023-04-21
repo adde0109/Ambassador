@@ -9,6 +9,7 @@ import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import io.netty.buffer.Unpooled;
 import org.adde0109.ambassador.Ambassador;
@@ -16,7 +17,6 @@ import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.packet.ModListReplyPacket;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
 import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
-import org.adde0109.ambassador.velocity.client.OutboundForgeHandshakeQueue;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 import org.adde0109.ambassador.velocity.client.PluginLoginPacketQueue;
 
@@ -38,27 +38,35 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
   COMPLETE {
 
     @Override
+    public void resetAndWrite(ConnectedPlayer player, LoginPluginMessage message) {
+      resetConnectionPhase(player);
+      pending = message;
+    }
+
+    @Override
     public void resetConnectionPhase(ConnectedPlayer player) {
       MinecraftConnection connection = player.getConnection();
 
-
-      //We unregister so no plugin sees this client while the client is being reset.
-      ((VelocityServer) Ambassador.getInstance().server).unregisterConnection(player);
+      //There is no going back even if the handshake fails. No reason to still be connected.
       if (player.getConnectedServer() != null) {
         player.getConnectedServer().disconnect();
         player.setConnectedServer(null);
       }
+      //Don't handle anything from the server until the reset has completed.
       player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
 
-      //Prepare to receive reset ACK and Forge Handshake.
+      //Prepare to receive reset ACK
       connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER, ForgeConstants.RESET_LISTENER,new FML2CRPMResetCompleteDecoder());
-      connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER, ForgeConstants.FORGE_HANDSHAKE_HOLDER,new OutboundForgeHandshakeQueue());
       ((ForgeLoginWrapperDecoder) connection.getChannel().pipeline().get(ForgeConstants.FORGE_HANDSHAKE_DECODER)).registerLoginWrapperID(98);
 
       //No more PLAY packets past this point should be sent to the client in case the reset works.
       connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
+
+      //We unregister so no plugin sees this client while the client is being reset.
+      ((VelocityServer) Ambassador.getInstance().server).unregisterConnection(player);
       connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER,ForgeConstants.PLUGIN_PACKET_QUEUE, new PluginLoginPacketQueue());
 
+      //Transition
       player.setPhase(WAITING_RESET);
       WAITING_RESET.onTransitionToNewPhase(player);
     }
@@ -88,8 +96,10 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
           player.getConnection().getChannel().pipeline().remove(ForgeConstants.RESET_LISTENER);
           player.getConnection().setState(StateRegistry.LOGIN);
           player.setPhase(NOT_STARTED);
+
           //Send all held messages
-          player.getConnection().getChannel().pipeline().remove(ForgeConstants.FORGE_HANDSHAKE_HOLDER);
+          if (pending != null)
+            player.getConnection().write(pending);
           player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(true);
 
           if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
@@ -98,6 +108,8 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
             ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
                     .sendPacket();
             connection.setState(StateRegistry.PLAY);
+
+            //Plugins may now send packets to client
             connection.getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
             ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
           }
@@ -108,11 +120,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       }
     }
   };
-
-
-
-
-  public boolean vanillaMode = true;
+  public LoginPluginMessage pending;
 
   public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket msg, VelocityServerConnection server) {
     player.setPhase(nextPhase());
@@ -122,14 +130,15 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     }
 
     player.getConnectionInFlight().getConnection().write(msg.encode());
-    vanillaMode = false;
     return true;
   }
 
-  private RegisteredServer lastKnownWorking;
-
   void onTransitionToNewPhase(ConnectedPlayer player) {
 
+  }
+
+  public void resetAndWrite(ConnectedPlayer player, LoginPluginMessage message) {
+    player.getConnection().write(message);
   }
 
   VelocityForgeClientConnectionPhase nextPhase() {
