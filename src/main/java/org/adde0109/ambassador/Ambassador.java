@@ -40,7 +40,7 @@ import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_19;
 import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_19_3;
 import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier.mapSet;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "1.3.4-beta", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "1.3.3-beta", authors = {"adde0109"})
 public class Ambassador {
 
   public ProxyServer server;
