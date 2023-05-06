@@ -30,12 +30,12 @@ public class VelocityHandshakeSessionHandler implements MinecraftSessionHandler 
           case "FML2":
             connection.setType(ForgeConstants.ForgeFML2);
             connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER,ForgeConstants.SERVER_SUCCESS_LISTENER, new OutboundSuccessHolder());
-            connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER,ForgeConstants.PLUGIN_PACKET_QUEUE, new PluginLoginPacketQueue());
+            connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER,ForgeConstants.PLUGIN_PACKET_QUEUE, new ClientPacketQueue(StateRegistry.PLAY));
             break;
           case "FML3":
             connection.setType(ForgeConstants.ForgeFML3);
             connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER,ForgeConstants.SERVER_SUCCESS_LISTENER, new OutboundSuccessHolder());
-            connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER,ForgeConstants.PLUGIN_PACKET_QUEUE, new PluginLoginPacketQueue());
+            connection.getChannel().pipeline().addAfter(Connections.MINECRAFT_ENCODER,ForgeConstants.PLUGIN_PACKET_QUEUE, new ClientPacketQueue(StateRegistry.PLAY));
             break;
         }
       }

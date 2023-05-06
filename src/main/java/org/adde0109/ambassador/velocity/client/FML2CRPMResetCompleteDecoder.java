@@ -1,9 +1,8 @@
 package org.adde0109.ambassador.velocity.client;
 
-import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.adde0109.ambassador.forge.packet.GenericForgeLoginWrapperPacket;
@@ -25,9 +24,9 @@ public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
         try {
           int id = ProtocolUtils.readVarInt(buf);
           boolean success = buf.readBoolean();
-          if (id == 98) {
+          if (id == 80) {
             try {
-              IForgeLoginWrapperPacket packet = new GenericForgeLoginWrapperPacket(buf, id);
+              IForgeLoginWrapperPacket packet = new GenericForgeLoginWrapperPacket(Unpooled.EMPTY_BUFFER, id, success);
               ctx.fireChannelRead(packet);
             } finally {
               buf.release();

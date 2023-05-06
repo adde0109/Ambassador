@@ -6,10 +6,12 @@ import io.netty.buffer.ByteBuf;
 
 public class GenericForgeLoginWrapperPacket extends DeferredByteBufHolder implements IForgeLoginWrapperPacket {
   private final int id;
+  private final boolean success;
 
-  public GenericForgeLoginWrapperPacket(ByteBuf input, int id) {
+  public GenericForgeLoginWrapperPacket(ByteBuf input, int id, boolean success) {
     super(input);
     this.id = id;
+    this.success = success;
   }
 
   @Override
@@ -20,5 +22,9 @@ public class GenericForgeLoginWrapperPacket extends DeferredByteBufHolder implem
   @Override
   public int getId() {
     return id;
+  }
+
+  public boolean success() {
+    return success;
   }
 }

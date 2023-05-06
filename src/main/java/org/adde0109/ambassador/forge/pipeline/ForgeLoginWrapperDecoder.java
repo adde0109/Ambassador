@@ -26,7 +26,7 @@ public class ForgeLoginWrapperDecoder extends MessageToMessageDecoder<LoginPlugi
     String channel = ProtocolUtils.readString(buf);
     if (!channel.equals("fml:handshake")) {
       buf.readerIndex(originalReaderIndex);
-      out.add(new GenericForgeLoginWrapperPacket(buf.retain(), msg.getId()));
+      out.add(new GenericForgeLoginWrapperPacket(buf.retain(), msg.getId(), true));
       return;
     }
     int length = ProtocolUtils.readVarInt(buf);
@@ -35,7 +35,7 @@ public class ForgeLoginWrapperDecoder extends MessageToMessageDecoder<LoginPlugi
       out.add(ModListReplyPacket.read(msg));
     } else {
       buf.readerIndex(originalReaderIndex);
-      out.add(new GenericForgeLoginWrapperPacket(buf.retain(), msg.getId()));
+      out.add(new GenericForgeLoginWrapperPacket(buf.retain(), msg.getId(), true));
     }
   }
 

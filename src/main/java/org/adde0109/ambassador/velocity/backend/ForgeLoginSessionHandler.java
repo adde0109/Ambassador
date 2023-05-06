@@ -51,30 +51,24 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     if ((serverConnection.getPhase() instanceof VelocityForgeBackendConnectionPhase phase)) {
       phase.onLoginSuccess(serverConnection,serverConnection.getPlayer());
     }
-
-    ConnectedPlayer player = serverConnection.getPlayer();
-    if (player.getConnectedServer() != null && player.getConnectedServer().getConnection().getType() instanceof ForgeFMLConnectionType) {
-      //Forge -> vanilla
-      //Has not already been reset
-      //Not for Vanilla -> Vanilla
-      player.getPhase().resetConnectionPhase(player);
-    } else if (player.getConnection().getState() == StateRegistry.LOGIN) {
-      //Initial vanilla
-      //Vanilla -> Forge
-      //Forge -> Forge
-      MinecraftConnection connection = player.getConnection();
-      ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
-              .sendPacket();
-      connection.setState(StateRegistry.PLAY);
-      connection.getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
-      ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
-    }
-
     original.handle(packet);
+    if (serverConnection.getConnection() == null) {
+      return true;
+    }
+    ConnectedPlayer player = serverConnection.getPlayer();
+    if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
+      //Initial vanilla - because we need to find out if reset packet works
+      //Forge -> vanilla
+      if (player.getConnectedServer() == null) {
+        //Initial Vanilla
 
-    serverConnection.getConnection().setSessionHandler(
-            new ForgePlaySessionHandler((TransitionSessionHandler) serverConnection
-                    .getConnection().getSessionHandler(),serverConnection));
+        //Send empty Mod list
+        player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
+      }
+    } else {
+      //TODO: Read modlist
+      ((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player, true);
+    }
     return true;
   }
 

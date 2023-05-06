@@ -8,6 +8,7 @@ public class ForgeConstants {
   public static final String RESET_LISTENER = "ambassador-reset-listener";
   public static final String SERVER_SUCCESS_LISTENER = "ambassador-server-success-listener";
   public static final String PLUGIN_PACKET_QUEUE = "ambassador-plugin-generated-packet-queue";
+  public static final String LOGIN_PACKET_QUEUE = "ambassador-login-packet-queue";
   public static final String FORGE_HANDSHAKE_DECODER = "ambassador-forge-decoder";
   public static final String FORGE_HANDSHAKE_HANDLER = "ambassador-forge-handler";
   public static final String COMMAND_ERROR_CATCHER = "ambassador-command-catcher";

@@ -20,7 +20,7 @@ public class ForgePlaySessionHandler implements MinecraftSessionHandler {
   @Override
   public boolean handle(JoinGame packet) {
     if (serverConnection.getPlayer().getPhase() instanceof VelocityForgeClientConnectionPhase clientPhase) {
-      serverConnection.getPlayer().setPhase(VelocityForgeClientConnectionPhase.COMPLETE);
+      serverConnection.getPlayer().setPhase(VelocityForgeClientConnectionPhase.RESETTABLE);
     }
     return MinecraftSessionHandler.super.handle(packet);
   }

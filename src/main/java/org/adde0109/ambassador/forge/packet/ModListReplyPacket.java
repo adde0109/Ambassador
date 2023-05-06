@@ -28,7 +28,7 @@ public class ModListReplyPacket implements IForgeLoginWrapperPacket {
     this.id = id;
   }
 
-  public static ModListReplyPacket read(LoginPluginResponse msg) {
+  public ModListReplyPacket read(LoginPluginResponse msg) {
     ByteBuf input = msg.content();
 
     List<String> mods = new ArrayList<>();
