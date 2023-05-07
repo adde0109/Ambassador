@@ -24,7 +24,7 @@ public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
         try {
           int id = ProtocolUtils.readVarInt(buf);
           boolean success = buf.readBoolean();
-          if (id == 80) {
+          if (id == 98) {
             try {
               IForgeLoginWrapperPacket packet = new GenericForgeLoginWrapperPacket(Unpooled.EMPTY_BUFFER, id, success);
               ctx.fireChannelRead(packet);

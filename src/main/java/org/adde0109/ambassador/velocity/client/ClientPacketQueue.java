@@ -10,10 +10,10 @@ import io.netty.channel.*;
 public class ClientPacketQueue extends ChannelOutboundHandlerAdapter {
 
     private PendingWriteQueue queue;
-    private final StateRegistry registry;
+    private final StateRegistry allow;
 
     public ClientPacketQueue(StateRegistry registry) {
-        this.registry = registry;
+        this.allow = registry;
     }
 
     @Override
@@ -26,11 +26,11 @@ public class ClientPacketQueue extends ChannelOutboundHandlerAdapter {
         MinecraftConnection connection = ctx.pipeline().get(MinecraftConnection.class);
         if (msg instanceof MinecraftPacket packet) {
             try {
-                registry.getProtocolRegistry(ProtocolUtils.Direction.CLIENTBOUND ,
+                allow.getProtocolRegistry(ProtocolUtils.Direction.CLIENTBOUND ,
                         connection.getProtocolVersion()).getPacketId(packet);
-                queue.add(msg,promise);
+                ctx.write(msg,promise);
             } catch (IllegalArgumentException e) {
-                ctx.write(msg, promise);
+                queue.add(msg, promise);
             }
         } else {
             ctx.write(msg,promise);

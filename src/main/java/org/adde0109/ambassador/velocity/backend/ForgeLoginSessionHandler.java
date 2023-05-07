@@ -1,25 +1,16 @@
 package org.adde0109.ambassador.velocity.backend;
 
-import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.PlayerInfoForwarding;
-import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.backend.*;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
-import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
-import net.kyori.adventure.text.Component;
-import org.adde0109.ambassador.Ambassador;
-import org.adde0109.ambassador.forge.ForgeConstants;
-import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
-import org.adde0109.ambassador.forge.VelocityForgeBackendConnectionPhase;
-import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
-import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
+import org.adde0109.ambassador.forge.*;
 
 public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
@@ -57,20 +48,24 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     }
     ConnectedPlayer player = serverConnection.getPlayer();
     if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
-      //Initial vanilla - because we need to find out if reset packet works
-      //Forge -> vanilla
       if (player.getConnectedServer() == null) {
         //Initial Vanilla
-
-        //Send empty Mod list
+        //Send empty mod list in order to get client mod list
+        ((VelocityForgeClientConnectionPhase) player.getPhase()).sendVanillaModlist(player);
+        player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
+        //((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player);
+      } else if (player.getConnectedServer().getConnection().getType() instanceof ForgeFMLConnectionType) {
+        //Forge -> vanilla
+        player.getPhase().resetConnectionPhase(player);
         player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
       }
     } else {
-      //TODO: Read modlist
-      ((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player, true);
+      ((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player);
     }
     return true;
   }
+
+
 
   @Override
   public boolean handle(Disconnect packet) {
