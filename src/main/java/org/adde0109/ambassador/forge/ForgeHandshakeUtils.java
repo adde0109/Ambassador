@@ -71,13 +71,23 @@ public class ForgeHandshakeUtils {
     return dataAndPacketIdStream.toByteArray();
   }
 
-  public static final byte[] emptyModlist = generateEmptyModlist();
-  private static byte[] generateEmptyModlist() {
+  public static final byte[] emptyModlistFML2 = generateEmptyModlist(2);
+  public static final byte[] emptyModlistFML3 = generateEmptyModlist(3);
+  private static byte[] generateEmptyModlist(int fmlVersion) {
     ByteArrayDataOutput dataAndPacketIdStream = ByteStreams.newDataOutput();
     writeVarInt(dataAndPacketIdStream,1);
-    writeVarInt(dataAndPacketIdStream,0);
-    writeVarInt(dataAndPacketIdStream,0);
-    writeVarInt(dataAndPacketIdStream,0);
+    writeVarInt(dataAndPacketIdStream,0); //Mods
+    if (fmlVersion == 3) {
+      writeVarInt(dataAndPacketIdStream,1); //Channels
+      writeUtf(dataAndPacketIdStream, "forge:tier_sorting");
+      writeUtf(dataAndPacketIdStream,"1.0");
+      writeVarInt(dataAndPacketIdStream,0); //Registries
+      writeVarInt(dataAndPacketIdStream,0); //Data-packs
+    } else {
+      writeVarInt(dataAndPacketIdStream,0); //Channels
+      writeVarInt(dataAndPacketIdStream,0); //Registries
+    }
+
 
     ByteArrayDataOutput stream = ByteStreams.newDataOutput();
     byte[] dataAndPacketId = dataAndPacketIdStream.toByteArray();

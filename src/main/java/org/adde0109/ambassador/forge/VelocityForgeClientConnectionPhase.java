@@ -152,7 +152,8 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
   public void sendVanillaModlist(ConnectedPlayer player) {
     player.getConnection().write(new LoginPluginMessage(0, "fml:loginwrapper",
-            Unpooled.wrappedBuffer(ForgeHandshakeUtils.emptyModlist)));
+            Unpooled.wrappedBuffer(player.getConnection().getType() == ForgeConstants.ForgeFML3 ?
+                    ForgeHandshakeUtils.emptyModlistFML3 : ForgeHandshakeUtils.emptyModlistFML2)));
 
     ForgeLoginWrapperDecoder decoder = (ForgeLoginWrapperDecoder) player.getConnection()
             .getChannel().pipeline().get(ForgeConstants.FORGE_HANDSHAKE_DECODER);
