@@ -2,6 +2,7 @@ package org.adde0109.ambassador.forge.packet;
 
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
+import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import io.netty.buffer.ByteBuf;

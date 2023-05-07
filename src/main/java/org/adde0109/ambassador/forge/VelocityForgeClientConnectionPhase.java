@@ -21,6 +21,8 @@ import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 import org.adde0109.ambassador.velocity.client.ClientPacketQueue;
 
+import java.util.concurrent.TimeUnit;
+
 public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase {
 
   NOT_STARTED {
@@ -114,7 +116,10 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
     @Override
     public void resetConnectionPhase(ConnectedPlayer player) {
-      player.disconnect(Component.text("reconnect"));
+      Ambassador.getTemporaryForced().put(player.getUsername(), player.getConnectionInFlight().getServer(),
+              Ambassador.getInstance().config.getServerSwitchCancellationTime(), TimeUnit.SECONDS);
+      //Disconnect - Reset Timeout
+      player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage());
     }
 
     @Override
@@ -123,6 +128,8 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     }
   };
 
+  public ModListReplyPacket clientModList;
+
   public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket msg, VelocityServerConnection server) {
     player.setPhase(nextPhase());
 
@@ -130,6 +137,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       ModInfo modInfo = new ModInfo("FML2", replyPacket.getMods().stream().map(
               (v) -> new ModInfo.Mod(v,"1")).toList());
       player.setModInfo(modInfo);
+      this.clientModList = replyPacket;
       if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
         complete(player);
         player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(true);
@@ -160,9 +168,11 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     if (isResettable(player)) {
       player.setPhase(RESETTABLE);
       RESETTABLE.onTransitionToNewPhase(player);
+      RESETTABLE.clientModList = clientModList;
     } else {
       player.setPhase(COMPLETE);
       COMPLETE.onTransitionToNewPhase(player);
+      COMPLETE.clientModList = clientModList;
     }
   }
 

@@ -69,7 +69,7 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(Disconnect packet) {
-    if (!serverConnection.getPhase().consideredComplete()) {
+    if (!serverConnection.getPlayer().getPhase().consideredComplete()) {
       serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(), packet, false);
       return true;
     }
@@ -79,7 +79,7 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
   @Override
   public void disconnected() {
     //Same as default just not safe.
-    if (!serverConnection.getPhase().consideredComplete()) {
+    if (!serverConnection.getPlayer().getPhase().consideredComplete()) {
       if (server.getConfiguration().getPlayerInfoForwardingMode() == PlayerInfoForwarding.LEGACY) {
         serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(),
                 new QuietRuntimeException("The connection to the remote server was unexpectedly closed.\n"
