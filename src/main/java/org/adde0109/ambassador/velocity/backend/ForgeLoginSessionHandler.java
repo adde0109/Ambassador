@@ -51,9 +51,9 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
       if (player.getConnectedServer() == null) {
         //Initial Vanilla
         //Send empty mod list in order to get client mod list
-        ((VelocityForgeClientConnectionPhase) player.getPhase()).sendVanillaModlist(player);
-        player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
-        //((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player);
+        //((VelocityForgeClientConnectionPhase) player.getPhase()).sendVanillaModlist(player);
+        //player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
+        ((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player);
       } else if (player.getConnectedServer().getConnection().getType() instanceof ForgeFMLConnectionType) {
         //Forge -> vanilla
         player.getPhase().resetConnectionPhase(player);

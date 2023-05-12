@@ -8,9 +8,11 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
@@ -21,6 +23,7 @@ import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 import org.adde0109.ambassador.velocity.client.ClientPacketQueue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase {
@@ -118,8 +121,17 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     public void resetConnectionPhase(ConnectedPlayer player) {
       Ambassador.getTemporaryForced().put(player.getUsername(), player.getConnectionInFlight().getServer(),
               Ambassador.getInstance().config.getServerSwitchCancellationTime(), TimeUnit.SECONDS);
-      //Disconnect - Reset Timeout
-      player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage());
+      //Disconnect - Reset
+      if(player.getKnownChannels().contains("srvredirect:red") && player.getVirtualHost().isPresent()) {
+        ByteBuf buf = Unpooled.buffer();
+        ProtocolUtils.writeVarInt(buf, 0);
+        buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
+                + player.getVirtualHost().get().getPort()).getBytes(StandardCharsets.UTF_8));
+        player.getConnection().write(new PluginMessage("srvredirect:red", buf));
+        player.getConnection().close();
+      } else {
+        player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage());
+      }
     }
 
     @Override
