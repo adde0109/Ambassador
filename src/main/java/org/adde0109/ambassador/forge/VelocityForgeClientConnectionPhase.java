@@ -33,6 +33,11 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     VelocityForgeClientConnectionPhase nextPhase() {
       return IN_PROGRESS;
     }
+
+    @Override
+    public void resetConnectionPhase(ConnectedPlayer player) {
+      RESETTABLE.resetConnectionPhase(player);
+    }
   },
   IN_PROGRESS {
   },
@@ -58,9 +63,8 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
       if (connection.getState() == StateRegistry.PLAY) {
         connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
-        connection.setState(StateRegistry.LOGIN);
       } else {
-        connection.write(new LoginPluginMessage(98,"fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
+        connection.write(new LoginPluginMessage(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
       }
 
       //Prepare to receive reset ACK
@@ -94,12 +98,13 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       if (msg.getId() == 98) {
         player.getConnection().getChannel().pipeline().remove(ForgeConstants.RESET_LISTENER);
         player.setPhase(NOT_STARTED);
+        player.getConnection().setState(StateRegistry.LOGIN);
 
         player.getConnection().getChannel().pipeline().remove(ForgeConstants.LOGIN_PACKET_QUEUE);
 
         if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
           // -> vanilla
-          complete(player);
+          complete(player, msg.getSuccess());
           player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(true);
         }
 
@@ -173,12 +178,16 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
   }
 
   public void complete(ConnectedPlayer player) {
+    complete(player, isResettable(player));
+  }
+
+  public void complete(ConnectedPlayer player, boolean resettable) {
     MinecraftConnection connection = player.getConnection();
     ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
             .sendPacket();
     connection.setState(StateRegistry.PLAY);
 
-    if (isResettable(player)) {
+    if (resettable) {
       player.setPhase(RESETTABLE);
       RESETTABLE.onTransitionToNewPhase(player);
       RESETTABLE.clientModList = clientModList;

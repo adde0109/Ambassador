@@ -10,6 +10,7 @@ import com.velocitypowered.proxy.protocol.packet.Disconnect;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
+import io.netty.buffer.Unpooled;
 import org.adde0109.ambassador.forge.*;
 
 public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
@@ -48,17 +49,10 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     }
     ConnectedPlayer player = serverConnection.getPlayer();
     if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
-      if (player.getConnectedServer() == null) {
         //Initial Vanilla
-        //Send empty mod list in order to get client mod list
-        //((VelocityForgeClientConnectionPhase) player.getPhase()).sendVanillaModlist(player);
-        //player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
-        ((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player);
-      } else if (player.getConnectedServer().getConnection().getType() instanceof ForgeFMLConnectionType) {
         //Forge -> vanilla
         player.getPhase().resetConnectionPhase(player);
         player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
-      }
     } else {
       ((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player);
     }

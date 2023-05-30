@@ -24,7 +24,8 @@ public class GenericForgeLoginWrapperPacket extends DeferredByteBufHolder implem
     return id;
   }
 
-  public boolean success() {
+  @Override
+  public boolean getSuccess() {
     return success;
   }
 }

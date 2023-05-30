@@ -2,7 +2,6 @@ package org.adde0109.ambassador.forge.packet;
 
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
-import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import io.netty.buffer.ByteBuf;
@@ -21,12 +20,15 @@ public class ModListReplyPacket implements IForgeLoginWrapperPacket {
 
   private final int id;
 
+  private final boolean success;
+
   private ModListReplyPacket(List<String> mods, Map<ChannelIdentifier,
-          String> channels, Map<String, String> registries, int id) {
+          String> channels, Map<String, String> registries, int id, boolean success) {
     this.mods = mods;
     this.channels = channels;
     this.registries = registries;
     this.id = id;
+    this.success = success;
   }
 
   public static ModListReplyPacket read(LoginPluginResponse msg) {
@@ -48,7 +50,7 @@ public class ModListReplyPacket implements IForgeLoginWrapperPacket {
     for (int x = 0; x < len; x++)
       registries.put(ProtocolUtils.readString(input, 32767), ProtocolUtils.readString(input, 0x100));
 
-    return new ModListReplyPacket(mods, channels, registries, msg.getId());
+    return new ModListReplyPacket(mods, channels, registries, msg.getId(), true);
   }
 
   @Override
@@ -83,6 +85,11 @@ public class ModListReplyPacket implements IForgeLoginWrapperPacket {
   @Override
   public int getId() {
     return id;
+  }
+
+  @Override
+  public boolean getSuccess() {
+    return success;
   }
 
   public List<String> getMods() {
