@@ -12,8 +12,6 @@ import java.nio.file.Path;
 
 public class AmbassadorConfig {
 
-  @Expose
-  private int resetTimeout = 1000;
 
   @Expose
   private String disconnectResetMessage = "Please reconnect";
@@ -26,21 +24,13 @@ public class AmbassadorConfig {
 
   private net.kyori.adventure.text.@MonotonicNonNull Component messageAsAsComponent;
 
-  private AmbassadorConfig(int resetTimeout, String kickResetMessage, int serverSwitchCancellationTime, boolean silenceWarnings) {
-    this.resetTimeout = resetTimeout;
+  private AmbassadorConfig(String kickResetMessage, int serverSwitchCancellationTime, boolean silenceWarnings) {
     this.disconnectResetMessage = kickResetMessage;
     this.serverSwitchCancellationTime = serverSwitchCancellationTime;
     this.silenceWarnings = silenceWarnings;
   };
 
   public void validate() {
-    final int connectionTimeout = Ambassador.getInstance().server.getConfiguration().getReadTimeout();
-    if (resetTimeout >= connectionTimeout) {
-      throw new InvalidValueException("'reset-timeout' can't be more than nor equal to 'read-timeout': reset-timeout=" + resetTimeout + " connection-timeout=" + connectionTimeout);
-    }
-    if (resetTimeout <= 0) {
-      throw new InvalidValueException("'reset-timeout' can't be less than nor equal to zero: reset-timeout=" + resetTimeout);
-    }
     if (serverSwitchCancellationTime <= 0) {
       throw new InvalidValueException("'server-switch-cancellation-time' can't be less than nor equal to zero: server-switch-cancellation-time=" + serverSwitchCancellationTime);
     }
@@ -70,20 +60,15 @@ public class AmbassadorConfig {
 
     if (configVersion < 1.1) {
       config.set("silence-warnings", false);
-      config.set("config-version", "1.1");
+      config.set("config-version", "1.2");
     }
 
-    int resetTimeout = config.getIntOrElse("reset-timeout", 3000);
     String kickResetMessage = config.getOrElse("disconnect-reset-message", "Please reconnect");
     int serverSwitchCancellationTime = config.getIntOrElse("server-switch-cancellation-time", 120);
 
     boolean silenceWarnings = config.getOrElse("silence-warnings", false);
 
-    return new AmbassadorConfig(resetTimeout, kickResetMessage, serverSwitchCancellationTime, silenceWarnings);
-  }
-
-  public int getResetTimeout() {
-    return resetTimeout;
+    return new AmbassadorConfig(kickResetMessage, serverSwitchCancellationTime, silenceWarnings);
   }
 
   public net.kyori.adventure.text.Component getDisconnectResetMessage() {

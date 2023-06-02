@@ -66,7 +66,9 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
 
     //Reset client if not ready to receive new handshake
     VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
-    clientPhase.resetConnectionPhase(player);
+    if (clientPhase != VelocityForgeClientConnectionPhase.NOT_STARTED) {
+      clientPhase.resetConnectionPhase(player);
+    }
     message.retain();
     player.getConnection().write(message);
     //Forge server

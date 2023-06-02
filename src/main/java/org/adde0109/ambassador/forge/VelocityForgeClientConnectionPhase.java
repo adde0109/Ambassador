@@ -63,6 +63,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
       if (connection.getState() == StateRegistry.PLAY) {
         connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
+        connection.setState(StateRegistry.LOGIN);
       } else {
         connection.write(new LoginPluginMessage(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
       }
@@ -98,7 +99,6 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       if (msg.getId() == 98) {
         player.getConnection().getChannel().pipeline().remove(ForgeConstants.RESET_LISTENER);
         player.setPhase(NOT_STARTED);
-        player.getConnection().setState(StateRegistry.LOGIN);
 
         player.getConnection().getChannel().pipeline().remove(ForgeConstants.LOGIN_PACKET_QUEUE);
 
@@ -133,7 +133,6 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
         buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
                 + player.getVirtualHost().get().getPort()).getBytes(StandardCharsets.UTF_8));
         player.getConnection().write(new PluginMessage("srvredirect:red", buf));
-        player.getConnection().close();
       } else {
         player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage());
       }
