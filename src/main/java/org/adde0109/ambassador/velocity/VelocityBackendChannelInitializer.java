@@ -13,24 +13,21 @@ import java.lang.reflect.Method;
 
 public class VelocityBackendChannelInitializer extends BackendChannelInitializer {
 
-  private static final Method INIT_CHANNEL;
+  private Method INIT_CHANNEL;
 
   private final ChannelInitializer<?> delegate;
   private final VelocityServer server;
-
-  static {
-    try {
-      INIT_CHANNEL = ChannelInitializer.class.getDeclaredMethod("initChannel", Channel.class);
-      INIT_CHANNEL.setAccessible(true);
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   public VelocityBackendChannelInitializer(ChannelInitializer<?> delegate, VelocityServer server) {
     super(server);
     this.delegate = delegate;
     this.server = server;
+    try {
+      INIT_CHANNEL = delegate.getClass().getDeclaredMethod("initChannel", Channel.class);
+      INIT_CHANNEL.setAccessible(true);
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

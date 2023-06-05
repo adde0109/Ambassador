@@ -14,22 +14,19 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 
 public class VelocityServerChannelInitializer extends ServerChannelInitializer {
-  private static final Method INIT_CHANNEL;
+  private Method INIT_CHANNEL;
 
   private final ChannelInitializer<?> delegate;
-
-  static {
-    try {
-      INIT_CHANNEL = ChannelInitializer.class.getDeclaredMethod("initChannel", Channel.class);
-      INIT_CHANNEL.setAccessible(true);
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   public VelocityServerChannelInitializer(ChannelInitializer<?> delegate,VelocityServer server) {
     super(server);
     this.delegate = delegate;
+    try {
+      INIT_CHANNEL = delegate.getClass().getDeclaredMethod("initChannel", Channel.class);
+      INIT_CHANNEL.setAccessible(true);
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -39,9 +36,12 @@ public class VelocityServerChannelInitializer extends ServerChannelInitializer {
     } catch (ReflectiveOperationException e) {
      throw new RuntimeException(e);
     }
-    ChannelHandler handler = ch.pipeline().get(Connections.HANDLER);
-    if (!(handler instanceof final MinecraftConnection connection)) throw new RuntimeException("plugin conflict");
-    HandshakeSessionHandler originalSessionHandler = (HandshakeSessionHandler) connection.getSessionHandler();
-    connection.setSessionHandler(new VelocityHandshakeSessionHandler(originalSessionHandler, connection));
+    finally {
+      if (ch.pipeline().get(MinecraftConnection.class) == null)
+        super.initChannel(ch);
+      MinecraftConnection handler = ch.pipeline().get(MinecraftConnection.class);
+      HandshakeSessionHandler originalSessionHandler = (HandshakeSessionHandler) handler.getSessionHandler();
+      handler.setSessionHandler(new VelocityHandshakeSessionHandler(originalSessionHandler, handler));
+    }
   }
 }
