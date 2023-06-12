@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.adde0109"
-version = "1.4.0-beta-rc9"
+version = "1.4.0"
 
 repositories {
     mavenCentral()
