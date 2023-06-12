@@ -14,6 +14,7 @@ Unlike other solutions, this plugin does not require any special modifications t
 
 ## Features
 * Server switching using kick to reset the client with configureble message and switch timeout.
+* ServerRedirect support for auto-reconnecting during switch.
 * Server switching using client mod for instant server switching: 
 https://github.com/Just-Chaldea/Forge-Client-Reset-Packet 
 1.18.2 and 1.19 fork:
