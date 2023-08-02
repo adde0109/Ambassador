@@ -17,10 +17,12 @@ public class VelocityServerChannelInitializer extends ServerChannelInitializer {
   private Method INIT_CHANNEL;
 
   private final ChannelInitializer<?> delegate;
+  private final VelocityServer server;
 
   public VelocityServerChannelInitializer(ChannelInitializer<?> delegate,VelocityServer server) {
     super(server);
     this.delegate = delegate;
+    this.server = server;
     try {
       INIT_CHANNEL = delegate.getClass().getDeclaredMethod("initChannel", Channel.class);
       INIT_CHANNEL.setAccessible(true);
@@ -41,7 +43,7 @@ public class VelocityServerChannelInitializer extends ServerChannelInitializer {
         super.initChannel(ch);
       MinecraftConnection handler = ch.pipeline().get(MinecraftConnection.class);
       HandshakeSessionHandler originalSessionHandler = (HandshakeSessionHandler) handler.getSessionHandler();
-      handler.setSessionHandler(new VelocityHandshakeSessionHandler(originalSessionHandler, handler));
+      handler.setSessionHandler(new VelocityHandshakeSessionHandler(originalSessionHandler, handler, server));
     }
   }
 }
