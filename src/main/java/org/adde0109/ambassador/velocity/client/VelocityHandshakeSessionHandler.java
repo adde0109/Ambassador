@@ -1,8 +1,8 @@
 package org.adde0109.ambassador.velocity.client;
 
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.ConnectionTypes;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
-import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.client.HandshakeSessionHandler;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
@@ -11,11 +11,12 @@ import com.velocitypowered.proxy.protocol.packet.Handshake;
 import io.netty.buffer.ByteBuf;
 import org.adde0109.ambassador.forge.ForgeConstants;
 
-public class VelocityHandshakeSessionHandler implements MinecraftSessionHandler {
+public class VelocityHandshakeSessionHandler extends HandshakeSessionHandler  {
   private final HandshakeSessionHandler original;
   private final MinecraftConnection connection;
 
-  public VelocityHandshakeSessionHandler(HandshakeSessionHandler original, MinecraftConnection connection) {
+  public VelocityHandshakeSessionHandler(HandshakeSessionHandler original, MinecraftConnection connection, VelocityServer server) {
+    super(connection, server);
     this.original = original;
     this.connection = connection;
   }
