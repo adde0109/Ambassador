@@ -10,7 +10,8 @@ import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 
-import java.lang.reflect.Field;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.util.HashMap;
@@ -18,12 +19,13 @@ import java.util.Map;
 
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.network.BackendChannelInitializerHolder;
 import com.velocitypowered.proxy.network.ConnectionManager;
+import com.velocitypowered.proxy.network.ServerChannelInitializerHolder;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertyRegistry;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertySerializer;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityBackendChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityServerChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityEventHandler;
@@ -80,7 +82,7 @@ public class Ambassador {
       inject();
 
       server.getEventManager().register(this, new VelocityEventHandler(this));
-    } catch (Exception e) {
+    } catch (Throwable e) {
       logger.error(e.toString());
     }
   }
@@ -99,15 +101,15 @@ public class Ambassador {
     }
   }
 
-  private void inject() throws ReflectiveOperationException {
-    Field cmField = VelocityServer.class.getDeclaredField("cm");
-    cmField.setAccessible(true);
+  private void inject() throws Throwable {
+    MethodHandle cmField = MethodHandles.privateLookupIn(VelocityServer.class, MethodHandles.lookup())
+            .findGetter(VelocityServer.class, "cm", ConnectionManager.class);
 
-    ChannelInitializer<?> original = ((ConnectionManager) cmField.get(server)).getServerChannelInitializer().get();
-    ((ConnectionManager) cmField.get(server)).getServerChannelInitializer().set(new VelocityServerChannelInitializer(original,(VelocityServer) server));
+    ServerChannelInitializerHolder serverChannelInitializer = ((ConnectionManager) cmField.invoke(server)).getServerChannelInitializer();
+    serverChannelInitializer.set(new VelocityServerChannelInitializer(serverChannelInitializer.get(),(VelocityServer) server));
 
-    ChannelInitializer<?> originalBackend = ((ConnectionManager) cmField.get(server)).getBackendChannelInitializer().get();
-    ((ConnectionManager) cmField.get(server)).getBackendChannelInitializer().set(new VelocityBackendChannelInitializer(originalBackend,(VelocityServer) server));
+    BackendChannelInitializerHolder backendChannelInitializer = ((ConnectionManager) cmField.invoke(server)).getBackendChannelInitializer();
+    backendChannelInitializer.set(new VelocityBackendChannelInitializer(backendChannelInitializer.get(),(VelocityServer) server));
 
     Method argumentRegistry = ArgumentPropertyRegistry.class.getDeclaredMethod("register", ArgumentIdentifier.class, Class.class, ArgumentPropertySerializer.class);
     argumentRegistry.setAccessible(true);
