@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_19;
 import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier.mapSet;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "1.4.0", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "1.4.1", authors = {"adde0109"})
 public class Ambassador {
 
   public ProxyServer server;

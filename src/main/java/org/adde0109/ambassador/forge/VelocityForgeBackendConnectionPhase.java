@@ -68,6 +68,11 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
     if (clientPhase != VelocityForgeClientConnectionPhase.NOT_STARTED) {
       clientPhase.resetConnectionPhase(player);
+      if (clientPhase == VelocityForgeClientConnectionPhase.COMPLETE)
+      {
+        //Do not continue if the client can't reset.
+        return;
+      }
     }
     message.retain();
     player.getConnection().write(message);

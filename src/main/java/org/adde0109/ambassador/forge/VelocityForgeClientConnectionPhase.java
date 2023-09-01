@@ -127,7 +127,9 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       Ambassador.getTemporaryForced().put(player.getUsername(), player.getConnectionInFlight().getServer(),
               Ambassador.getInstance().config.getServerSwitchCancellationTime(), TimeUnit.SECONDS);
       //Disconnect - Reset
-      if(player.getKnownChannels().contains("srvredirect:red") && player.getVirtualHost().isPresent()) {
+      if(player.getModInfo().isPresent()
+              && player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("serverredirect")))
+              && player.getVirtualHost().isPresent()) {
         ByteBuf buf = Unpooled.buffer();
         ProtocolUtils.writeVarInt(buf, 0);
         buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
