@@ -128,7 +128,8 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
               Ambassador.getInstance().config.getServerSwitchCancellationTime(), TimeUnit.SECONDS);
       //Disconnect - Reset
       if(player.getModInfo().isPresent()
-              && player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("serverredirect")))
+              && player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("serverredirect")
+              || mod.getId().equals("srvredirect:red")))
               && player.getVirtualHost().isPresent()) {
         ByteBuf buf = Unpooled.buffer();
         ProtocolUtils.writeVarInt(buf, 0);

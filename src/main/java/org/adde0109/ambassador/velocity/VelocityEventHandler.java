@@ -7,6 +7,7 @@ import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.*;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
@@ -14,6 +15,7 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.ForgeConstants;
+import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
 import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperHandler;
@@ -65,6 +67,17 @@ public class VelocityEventHandler {
       event.setInitialServer(chosenServer);
     //event.getPlayer().sendMessage(Component.text("choose server event"));
     continuation.resume();
+  }
+
+  @Subscribe
+  public void onPlayerChannelRegisterEvent(PlayerChannelRegisterEvent event) {
+    ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
+    if (!(player.getConnection().getType() instanceof ForgeFMLConnectionType)) {
+      return;
+    }
+    player.setModInfo(new ModInfo("Channels", event.getChannels().stream().map((id) -> {
+      return new ModInfo.Mod(id.getId(), "");
+    }).toList()));
   }
 
 }
