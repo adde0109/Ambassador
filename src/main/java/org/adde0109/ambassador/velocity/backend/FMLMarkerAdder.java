@@ -29,8 +29,11 @@ public class FMLMarkerAdder extends MessageToMessageEncoder<Handshake> {
   protected void encode(ChannelHandlerContext ctx, Handshake msg, List<Object> out) {
     MinecraftConnection connection = (MinecraftConnection) ctx.pipeline().get(Connections.HANDLER);
     VelocityServerConnection serverConnection = (VelocityServerConnection) connection.getAssociation();
+    PlayerInfoForwarding forwardingMode = server.getConfiguration().getPlayerInfoForwardingMode();
 
-    if (serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType FMLType && server.getConfiguration().getPlayerInfoForwardingMode() != PlayerInfoForwarding.LEGACY) {
+    if (serverConnection.getPlayer().getConnection().getType() instanceof ForgeFMLConnectionType FMLType
+            && forwardingMode != PlayerInfoForwarding.LEGACY
+            && forwardingMode != PlayerInfoForwarding.BUNGEEGUARD) {
       msg.setServerAddress(msg.getServerAddress() + (FMLType == ForgeConstants.ForgeFML3 ? ForgeConstants.FML3Marker : ForgeConstants.FML2Marker));
     }
     out.add(msg);
