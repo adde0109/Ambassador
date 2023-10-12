@@ -19,15 +19,11 @@ public class VelocityBackendChannelInitializer extends BackendChannelInitializer
   private final ChannelInitializer<Channel> delegate;
   private final VelocityServer server;
 
-  private final Logger logger;
-
-  public VelocityBackendChannelInitializer(ChannelInitializer<Channel> delegate, VelocityServer server, Logger logger) {
+  public VelocityBackendChannelInitializer(ChannelInitializer<Channel> delegate, VelocityServer server) {
     super(server);
     this.delegate = delegate;
     this.server = server;
-    this.logger = logger;
     try {
-      logger.info("Respecting the previous registered BackendChannelInitializer: " + delegate.getClass().getName());
       INIT_CHANNEL = delegate.getClass().getDeclaredMethod("initChannel", Channel.class);
       INIT_CHANNEL.setAccessible(true);
     } catch (ReflectiveOperationException e) {
@@ -38,7 +34,6 @@ public class VelocityBackendChannelInitializer extends BackendChannelInitializer
   @Override
   protected void initChannel(Channel ch) {
     try {
-      logger.info("Calling the underlying backend channel initializer: " + delegate.getClass().getName());
       INIT_CHANNEL.invoke(delegate, ch);
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);

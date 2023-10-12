@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_19;
 import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier.mapSet;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "1.4.2-beta-unofficial", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "1.4.3-beta", authors = {"adde0109"})
 public class Ambassador {
 
   public ProxyServer server;
@@ -110,7 +110,7 @@ public class Ambassador {
     connectionManager.getServerChannelInitializer().set(new VelocityServerChannelInitializer(original, (VelocityServer) server));
 
     ChannelInitializer<Channel> originalBackend = connectionManager.getBackendChannelInitializer().get();
-    connectionManager.getBackendChannelInitializer().set(new VelocityBackendChannelInitializer(originalBackend, (VelocityServer) server, logger));
+    connectionManager.getBackendChannelInitializer().set(new VelocityBackendChannelInitializer(originalBackend, (VelocityServer) server));
 
     Method argumentRegistry = ArgumentPropertyRegistry.class.getDeclaredMethod("register", ArgumentIdentifier.class, Class.class, ArgumentPropertySerializer.class);
     argumentRegistry.setAccessible(true);
