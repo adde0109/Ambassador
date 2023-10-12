@@ -28,10 +28,12 @@ public class VelocityEventHandler {
     this.ambassador = ambassador;
   }
 
-  @Subscribe
-  public void onLoginEvent(LoginEvent event, Continuation continuation) {
+  @Subscribe(order = PostOrder.FIRST)
+  public void onPostLoginEvent(PostLoginEvent event, Continuation continuation) {
     ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
     if (player.getPhase() instanceof VelocityForgeClientConnectionPhase) {
+      ((VelocityServer) Ambassador.getInstance().server).unregisterConnection(player);
+
       player.getConnection().eventLoop().submit(() -> {
         player.getConnection().setState(StateRegistry.LOGIN);
 
@@ -43,14 +45,6 @@ public class VelocityEventHandler {
                 ForgeConstants.FORGE_HANDSHAKE_HANDLER, new ForgeLoginWrapperHandler(player));
       });
     }
-    //event.getPlayer().sendMessage(Component.text("login event"));
-    continuation.resume();
-  }
-
-  @Subscribe(order = PostOrder.FIRST)
-  public void onPostLoginEvent(PostLoginEvent event, Continuation continuation) {
-    if (((ConnectedPlayer) event.getPlayer()).getPhase() instanceof VelocityForgeClientConnectionPhase)
-      ((VelocityServer) Ambassador.getInstance().server).unregisterConnection((ConnectedPlayer) event.getPlayer());
     //event.getPlayer().sendMessage(Component.text("post login event"));
     continuation.resume();
   }

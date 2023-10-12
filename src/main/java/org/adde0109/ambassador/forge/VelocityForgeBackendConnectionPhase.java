@@ -76,8 +76,6 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
       }
     }
     message.retain();
-    // dirty hack for 1.20.2 velocity!
-    player.getConnection().setState(StateRegistry.LOGIN);
     player.getConnection().write(message);
     //Forge server
     //To avoid unnecessary resets, we wait until we get the handshake even if we know that we should
