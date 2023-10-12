@@ -61,7 +61,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       //Don't handle anything from the server until the reset has completed.
       //player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
 
-      if (connection.getState() == StateRegistry.PLAY) {
+      if (connection.getState() == StateRegistry.PLAY || connection.getState() == StateRegistry.CONFIG) {
         connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
         connection.setState(StateRegistry.LOGIN);
       } else {

@@ -6,6 +6,7 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
@@ -75,6 +76,8 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
       }
     }
     message.retain();
+    // dirty hack for 1.20.2 velocity!
+    player.getConnection().setState(StateRegistry.LOGIN);
     player.getConnection().write(message);
     //Forge server
     //To avoid unnecessary resets, we wait until we get the handshake even if we know that we should
@@ -109,7 +112,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     if (message.getChannel().equals("ambassador:commands")) {
       AvailableCommands packet = new AvailableCommands();
       packet.decode(message.content(), ProtocolUtils.Direction.CLIENTBOUND,server.getConnection().getProtocolVersion());
-      server.getConnection().getSessionHandler().handle(packet);
+      server.getConnection().getActiveSessionHandler().handle(packet);
       return true;
     }
     return false;

@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertyRegistry;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertySerializer;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityBackendChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityServerChannelInitializer;
@@ -39,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_19;
 import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier.mapSet;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "1.4.2-beta", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "1.4.2-beta-unofficial", authors = {"adde0109"})
 public class Ambassador {
 
   public ProxyServer server;
@@ -103,11 +104,13 @@ public class Ambassador {
     Field cmField = VelocityServer.class.getDeclaredField("cm");
     cmField.setAccessible(true);
 
-    ChannelInitializer<?> original = ((ConnectionManager) cmField.get(server)).getServerChannelInitializer().get();
-    ((ConnectionManager) cmField.get(server)).getServerChannelInitializer().set(new VelocityServerChannelInitializer(original,(VelocityServer) server));
+    ConnectionManager connectionManager = (ConnectionManager) cmField.get(server);
 
-    ChannelInitializer<?> originalBackend = ((ConnectionManager) cmField.get(server)).getBackendChannelInitializer().get();
-    ((ConnectionManager) cmField.get(server)).getBackendChannelInitializer().set(new VelocityBackendChannelInitializer(originalBackend,(VelocityServer) server));
+    ChannelInitializer<Channel> original = connectionManager.getServerChannelInitializer().get();
+    connectionManager.getServerChannelInitializer().set(new VelocityServerChannelInitializer(original, (VelocityServer) server));
+
+    ChannelInitializer<Channel> originalBackend = connectionManager.getBackendChannelInitializer().get();
+    connectionManager.getBackendChannelInitializer().set(new VelocityBackendChannelInitializer(originalBackend, (VelocityServer) server, logger));
 
     Method argumentRegistry = ArgumentPropertyRegistry.class.getDeclaredMethod("register", ArgumentIdentifier.class, Class.class, ArgumentPropertySerializer.class);
     argumentRegistry.setAccessible(true);
