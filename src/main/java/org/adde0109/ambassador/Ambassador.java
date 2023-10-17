@@ -18,7 +18,9 @@ import java.util.Map;
 
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.network.ConnectionManager;
+import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertyRegistry;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertySerializer;
@@ -42,6 +44,9 @@ import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdenti
 
 @Plugin(id = "ambassador", name = "Ambassador", version = "1.4.3-beta", authors = {"adde0109"})
 public class Ambassador {
+
+  //Don't forget to update checkCompatibleVersion() when changing this value
+  private static final String minVelocityVersion = "velocity-3.2.0-SNAPSHOT-266";
 
   public ProxyServer server;
   public final Logger logger;
@@ -67,11 +72,26 @@ public class Ambassador {
     Ambassador.instance = this;
   }
 
+  boolean checkCompatibleVersion() {
+    //Update this when changing minVelocityVersion
+    try {
+      MinecraftConnection.class.getDeclaredMethod("setActiveSessionHandler", StateRegistry.class);
+    } catch (NoSuchMethodException e) {
+      return false;
+    }
+    return true;
+  }
+
   @Subscribe(order = PostOrder.LAST)
   public void onProxyInitialization(ProxyInitializeEvent event) {
     initMetrics();
 
     try {
+      if (!checkCompatibleVersion()) {
+        logger.error("Incompatible velocity version! Please use '" + minVelocityVersion + "' or higher.");
+        return;
+      }
+
       Files.createDirectories(dataDirectory);
 
       Path configPath = dataDirectory.resolve("Ambassador.toml");
@@ -82,7 +102,7 @@ public class Ambassador {
 
       server.getEventManager().register(this, new VelocityEventHandler(this));
     } catch (Exception e) {
-      logger.error(e.toString());
+      logger.error("An error prevented Ambassador to load correctly: "+ e.toString());
     }
   }
 
