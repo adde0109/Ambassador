@@ -16,6 +16,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
+import org.adde0109.ambassador.forge.packet.Context;
 import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.packet.ModListReplyPacket;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
@@ -96,7 +97,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
     @Override
     public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket msg, VelocityServerConnection server) {
-      if (msg.getId() == 98) {
+      if (msg.getContext().getResponseID() == 98) {
         player.getConnection().getChannel().pipeline().remove(ForgeConstants.RESET_LISTENER);
         player.setPhase(NOT_STARTED);
 
@@ -104,7 +105,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
         if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
           // -> vanilla
-          complete(player, msg.getSuccess());
+          complete(player, ((Context.ClientContext) msg.getContext()).success());
           player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(true);
         }
 

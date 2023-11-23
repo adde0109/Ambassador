@@ -4,28 +4,31 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.util.DeferredByteBufHolder;
 import io.netty.buffer.ByteBuf;
 
-public class GenericForgeLoginWrapperPacket extends DeferredByteBufHolder implements IForgeLoginWrapperPacket {
-  private final int id;
-  private final boolean success;
+public class GenericForgeLoginWrapperPacket<T extends Context> extends DeferredByteBufHolder implements IForgeLoginWrapperPacket<T> {
 
-  public GenericForgeLoginWrapperPacket(ByteBuf input, int id, boolean success) {
+  private final T context;
+
+  private GenericForgeLoginWrapperPacket(ByteBuf input, T context) {
     super(input);
-    this.id = id;
-    this.success = success;
+    this.context = context;
+  }
+
+  static public GenericForgeLoginWrapperPacket<Context> create(ByteBuf input, int id) {
+    return new GenericForgeLoginWrapperPacket<>(input, Context.createContext(id));
+  }
+
+  static public GenericForgeLoginWrapperPacket<Context> create(ByteBuf input, int id, boolean success) {
+    return new GenericForgeLoginWrapperPacket<>(input, Context.createContext(id, success));
   }
 
   @Override
-  public LoginPluginResponse encode() {
-    return new LoginPluginResponse(id, true, content());
+  public ByteBuf encode() {
+    return content();
   }
 
   @Override
-  public int getId() {
-    return id;
+  public T getContext() {
+    return context;
   }
 
-  @Override
-  public boolean getSuccess() {
-    return success;
-  }
 }

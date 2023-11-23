@@ -12,27 +12,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ModListReplyPacket implements IForgeLoginWrapperPacket {
+public class ModListReplyPacket implements IForgeLoginWrapperPacket<Context.ClientContext> {
 
   private List<String> mods;
   private Map<ChannelIdentifier, String> channels;
   private Map<String, String> registries;
 
-  private final int id;
-
-  private final boolean success;
-
+  private final Context.ClientContext context;
   private ModListReplyPacket(List<String> mods, Map<ChannelIdentifier,
           String> channels, Map<String, String> registries, int id, boolean success) {
     this.mods = mods;
     this.channels = channels;
     this.registries = registries;
-    this.id = id;
-    this.success = success;
+    this.context = Context.createContext(id, success);
   }
 
-  public static ModListReplyPacket read(LoginPluginResponse msg) {
-    ByteBuf input = msg.content();
+  public static ModListReplyPacket read(ByteBuf input, int msgID) {
 
     List<String> mods = new ArrayList<>();
     int len = ProtocolUtils.readVarInt(input);
@@ -50,11 +45,11 @@ public class ModListReplyPacket implements IForgeLoginWrapperPacket {
     for (int x = 0; x < len; x++)
       registries.put(ProtocolUtils.readString(input, 32767), ProtocolUtils.readString(input, 0x100));
 
-    return new ModListReplyPacket(mods, channels, registries, msg.getId(), true);
+    return new ModListReplyPacket(mods, channels, registries, msgID, true);
   }
 
   @Override
-  public LoginPluginResponse encode() {
+  public ByteBuf encode() {
     ByteBuf buf = Unpooled.buffer();
 
     ProtocolUtils.writeVarInt(buf, 2);
@@ -79,17 +74,12 @@ public class ModListReplyPacket implements IForgeLoginWrapperPacket {
     ProtocolUtils.writeVarInt(output, buf.readableBytes());
     output.writeBytes(buf);
 
-    return new LoginPluginResponse(id, true, output);
+    return output;
   }
 
   @Override
-  public int getId() {
-    return id;
-  }
-
-  @Override
-  public boolean getSuccess() {
-    return success;
+  public Context.ClientContext getContext() {
+    return context;
   }
 
   public List<String> getMods() {
