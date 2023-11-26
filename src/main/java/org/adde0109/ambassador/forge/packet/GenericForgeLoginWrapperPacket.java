@@ -13,12 +13,9 @@ public class GenericForgeLoginWrapperPacket<T extends Context> extends DeferredB
     this.context = context;
   }
 
-  static public GenericForgeLoginWrapperPacket<Context> create(ByteBuf input, int id) {
-    return new GenericForgeLoginWrapperPacket<>(input, Context.createContext(id));
-  }
 
-  static public GenericForgeLoginWrapperPacket<Context> create(ByteBuf input, int id, boolean success) {
-    return new GenericForgeLoginWrapperPacket<>(input, Context.createContext(id, success));
+  static public GenericForgeLoginWrapperPacket<Context> create(ByteBuf input, Context context) {
+    return new GenericForgeLoginWrapperPacket<>(input, context);
   }
 
   @Override

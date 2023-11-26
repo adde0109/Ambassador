@@ -20,14 +20,14 @@ public class ModListReplyPacket implements IForgeLoginWrapperPacket<Context.Clie
 
   private final Context.ClientContext context;
   private ModListReplyPacket(List<String> mods, Map<ChannelIdentifier,
-          String> channels, Map<String, String> registries, int id, boolean success) {
+          String> channels, Map<String, String> registries, Context.ClientContext context) {
     this.mods = mods;
     this.channels = channels;
     this.registries = registries;
-    this.context = Context.createContext(id, success);
+    this.context = context;
   }
 
-  public static ModListReplyPacket read(ByteBuf input, int msgID) {
+  public static ModListReplyPacket read(ByteBuf input, Context.ClientContext context) {
 
     List<String> mods = new ArrayList<>();
     int len = ProtocolUtils.readVarInt(input);
@@ -45,7 +45,7 @@ public class ModListReplyPacket implements IForgeLoginWrapperPacket<Context.Clie
     for (int x = 0; x < len; x++)
       registries.put(ProtocolUtils.readString(input, 32767), ProtocolUtils.readString(input, 0x100));
 
-    return new ModListReplyPacket(mods, channels, registries, msgID, true);
+    return new ModListReplyPacket(mods, channels, registries, context);
   }
 
   @Override

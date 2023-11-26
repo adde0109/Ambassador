@@ -6,13 +6,11 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
-import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
-import io.netty.buffer.ByteBuf;
 import org.adde0109.ambassador.forge.pipeline.CommandDecoderErrorCatcher;
-import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
+import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperCodec;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
   NOT_STARTED() {
@@ -82,10 +80,6 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     //Forge server
     //To avoid unnecessary resets, we wait until we get the handshake even if we know that we should
     //reset because that the previous server was Forge.
-
-    ForgeLoginWrapperDecoder decoder = (ForgeLoginWrapperDecoder) player.getConnection()
-            .getChannel().pipeline().get(ForgeConstants.FORGE_HANDSHAKE_DECODER);
-    decoder.registerLoginWrapperID(message.getId());
   }
 
   public void onLoginSuccess(VelocityServerConnection serverCon, ConnectedPlayer player) {

@@ -51,7 +51,7 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
       if (player.getConnectedServer() == null ||
               player.getConnectedServer().getConnection().getType() instanceof ForgeFMLConnectionType) {
-        //Initial Vanilla
+        //Initial Vanilla - test if the client can be reset
         //Forge -> vanilla
         player.getPhase().resetConnectionPhase(player);
         player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);

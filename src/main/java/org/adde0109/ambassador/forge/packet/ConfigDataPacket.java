@@ -2,12 +2,12 @@ package org.adde0109.ambassador.forge.packet;
 
 import io.netty.buffer.ByteBuf;
 
-public class configDataPacket implements IForgeLoginWrapperPacket<Context> {
+public class ConfigDataPacket implements IForgeLoginWrapperPacket<Context> {
 
     private final Context context;
 
-    public configDataPacket(int msgID) {
-        this.context = Context.createContext(msgID);
+    public ConfigDataPacket(Context context) {
+        this.context = context;
     }
 
     @Override

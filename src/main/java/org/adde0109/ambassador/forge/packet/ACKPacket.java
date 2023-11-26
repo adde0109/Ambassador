@@ -7,12 +7,8 @@ public class ACKPacket implements IForgeLoginWrapperPacket<Context.ClientContext
 
     private final Context.ClientContext context;
 
-    ACKPacket(int msgID, boolean success) {
-        this.context = Context.createContext(msgID, success);
-    }
-
-    ACKPacket read(ByteBuf input, int msgID, boolean success) {
-        return new ACKPacket(msgID, success);
+    public ACKPacket(Context.ClientContext context) {
+        this.context = context;
     }
     @Override
     public ByteBuf encode() {

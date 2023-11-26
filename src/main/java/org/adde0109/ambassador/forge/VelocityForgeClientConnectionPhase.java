@@ -14,12 +14,10 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.Context;
 import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.packet.ModListReplyPacket;
-import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
 import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 import org.adde0109.ambassador.velocity.client.ClientPacketQueue;
@@ -168,16 +166,6 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
     player.getConnectionInFlight().getConnection().write(msg.encode());
     return true;
-  }
-
-  public void sendVanillaModlist(ConnectedPlayer player) {
-    player.getConnection().write(new LoginPluginMessage(0, "fml:loginwrapper",
-            Unpooled.wrappedBuffer(player.getConnection().getType() == ForgeConstants.ForgeFML3 ?
-                    ForgeHandshakeUtils.emptyModlistFML3 : ForgeHandshakeUtils.emptyModlistFML2)));
-
-    ForgeLoginWrapperDecoder decoder = (ForgeLoginWrapperDecoder) player.getConnection()
-            .getChannel().pipeline().get(ForgeConstants.FORGE_HANDSHAKE_DECODER);
-    decoder.registerLoginWrapperID(0);
   }
 
   public void complete(ConnectedPlayer player) {

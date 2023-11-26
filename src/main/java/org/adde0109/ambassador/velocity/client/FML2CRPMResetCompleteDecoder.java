@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import org.adde0109.ambassador.forge.packet.Context;
 import org.adde0109.ambassador.forge.packet.GenericForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 
@@ -26,8 +27,8 @@ public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
           boolean success = buf.readBoolean();
           if (id == 98) {
             try {
-              IForgeLoginWrapperPacket packet = GenericForgeLoginWrapperPacket.create(Unpooled.EMPTY_BUFFER, id, success);
-              ctx.fireChannelRead(packet);
+              ctx.fireChannelRead(GenericForgeLoginWrapperPacket.create(
+                      Unpooled.EMPTY_BUFFER, Context.createContext(id, success)));
             } finally {
               buf.release();
             }

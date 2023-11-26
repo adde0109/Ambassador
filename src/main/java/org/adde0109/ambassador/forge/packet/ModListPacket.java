@@ -19,15 +19,15 @@ public class ModListPacket implements IForgeLoginWrapperPacket<Context> {
 
     private final Context context;
     private ModListPacket(List<String> mods, Map<ChannelIdentifier,
-            String> channels, List<String> registries, int id, List<String> dataPackRegistries) {
+            String> channels, List<String> registries, Context context, List<String> dataPackRegistries) {
         this.mods = mods;
         this.channels = channels;
         this.registries = registries;
-        this.context = Context.createContext(id);
+        this.context = context;
         this.dataPackRegistries = dataPackRegistries;
     }
 
-    public static ModListPacket read(ByteBuf input, int msgID, boolean FML3) {
+    public static ModListPacket read(ByteBuf input, Context context) {
 
         List<String> mods = new ArrayList<>();
         int len = ProtocolUtils.readVarInt(input);
@@ -46,13 +46,13 @@ public class ModListPacket implements IForgeLoginWrapperPacket<Context> {
             registries.add(ProtocolUtils.readString(input, 32767));
 
         List<String> dataPackRegistries = new ArrayList<>();
-        if (FML3) {
+        if (input.isReadable()) {
             len = ProtocolUtils.readVarInt(input);
             for (int x = 0; x < len; x++)
                 dataPackRegistries.add(ProtocolUtils.readString(input, 0x100));
         }
 
-        return new ModListPacket(mods, channels, registries, msgID, dataPackRegistries);
+        return new ModListPacket(mods, channels, registries, context, dataPackRegistries);
     }
 
     @Override

@@ -8,11 +8,11 @@ public class Context {
     this.responseID = responseID;
   }
 
-  static Context createContext(int responseID) {
+  public static Context createContext(int responseID) {
     return new Context(responseID);
   }
 
-  static ClientContext createContext(int responseID, boolean clientSuccess) {
+  public static ClientContext createContext(int responseID, boolean clientSuccess) {
     return new ClientContext(responseID,clientSuccess);
   }
 

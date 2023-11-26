@@ -3,7 +3,6 @@ package org.adde0109.ambassador.velocity;
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
-import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.*;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
@@ -12,12 +11,11 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.StateRegistry;
-import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.ForgeConstants;
 import org.adde0109.ambassador.forge.ForgeFMLConnectionType;
 import org.adde0109.ambassador.forge.VelocityForgeClientConnectionPhase;
-import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperDecoder;
+import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperCodec;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperHandler;
 
 public class VelocityEventHandler {
@@ -39,7 +37,7 @@ public class VelocityEventHandler {
 
         player.getConnection().getChannel().pipeline().addBefore(
                 Connections.HANDLER,
-                ForgeConstants.FORGE_HANDSHAKE_DECODER, new ForgeLoginWrapperDecoder());
+                ForgeConstants.FORGE_HANDSHAKE_DECODER, new ForgeLoginWrapperCodec());
         player.getConnection().getChannel().pipeline().addAfter(
                 ForgeConstants.FORGE_HANDSHAKE_DECODER,
                 ForgeConstants.FORGE_HANDSHAKE_HANDLER, new ForgeLoginWrapperHandler(player));
