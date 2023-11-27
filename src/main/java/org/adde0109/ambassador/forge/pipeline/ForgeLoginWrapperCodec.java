@@ -15,7 +15,12 @@ import java.util.List;
 
 public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBufHolder, IForgeLoginWrapperPacket<?>> {
 
+  private final boolean FML3;
   private final List<Integer> loginWrapperIDs = new ArrayList<>();
+
+  public ForgeLoginWrapperCodec(boolean fml3) {
+    FML3 = fml3;
+  }
 
   @Override
   protected void decode(ChannelHandlerContext ctx, DeferredByteBufHolder in, List<Object> out) throws Exception {
@@ -51,7 +56,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
         } else {
           switch (packetID) {
             case 1:
-              out.add(ModListPacket.read(buf, context));
+              out.add(ModListPacket.read(buf, context, FML3));
               break;
             case 3:
               out.add(new RegistryPacket(context));

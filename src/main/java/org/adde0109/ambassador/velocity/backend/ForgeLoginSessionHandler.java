@@ -26,19 +26,6 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(LoginPluginMessage packet) {
-    if (packet.getChannel().equals("fml:loginwrapper")) {
-      if (serverConnection.getPhase() == BackendConnectionPhases.UNKNOWN) {
-        VelocityForgeBackendConnectionPhase.NOT_STARTED.handle(serverConnection,serverConnection.getPlayer(),packet);
-      } else if (serverConnection.getPhase() instanceof VelocityForgeBackendConnectionPhase phase1) {
-        phase1.handle(serverConnection,serverConnection.getPlayer(),packet);
-      }
-      return true;
-    }
-    return original.handle(packet);
-  }
-
-  @Override
   public boolean handle(ServerLoginSuccess packet) {
     if ((serverConnection.getPhase() instanceof VelocityForgeBackendConnectionPhase phase)) {
       phase.onLoginSuccess(serverConnection,serverConnection.getPlayer());

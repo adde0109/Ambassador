@@ -37,7 +37,8 @@ public class VelocityEventHandler {
 
         player.getConnection().getChannel().pipeline().addBefore(
                 Connections.HANDLER,
-                ForgeConstants.FORGE_HANDSHAKE_DECODER, new ForgeLoginWrapperCodec());
+                ForgeConstants.FORGE_HANDSHAKE_DECODER, new ForgeLoginWrapperCodec(
+                        player.getConnection().getType() == ForgeConstants.ForgeFML3));
         player.getConnection().getChannel().pipeline().addAfter(
                 ForgeConstants.FORGE_HANDSHAKE_DECODER,
                 ForgeConstants.FORGE_HANDSHAKE_HANDLER, new ForgeLoginWrapperHandler(player));

@@ -27,7 +27,7 @@ public class ModListPacket implements IForgeLoginWrapperPacket<Context> {
         this.dataPackRegistries = dataPackRegistries;
     }
 
-    public static ModListPacket read(ByteBuf input, Context context) {
+    public static ModListPacket read(ByteBuf input, Context context, boolean FML3) {
 
         List<String> mods = new ArrayList<>();
         int len = ProtocolUtils.readVarInt(input);
@@ -45,8 +45,9 @@ public class ModListPacket implements IForgeLoginWrapperPacket<Context> {
         for (int x = 0; x < len; x++)
             registries.add(ProtocolUtils.readString(input, 32767));
 
-        List<String> dataPackRegistries = new ArrayList<>();
-        if (input.isReadable()) {
+        List<String> dataPackRegistries = null;
+        if (FML3) {
+            dataPackRegistries = new ArrayList<>();
             len = ProtocolUtils.readVarInt(input);
             for (int x = 0; x < len; x++)
                 dataPackRegistries.add(ProtocolUtils.readString(input, 0x100));
@@ -74,8 +75,8 @@ public class ModListPacket implements IForgeLoginWrapperPacket<Context> {
         registries.forEach(k -> ProtocolUtils.writeString(buf, k));
 
         if (dataPackRegistries != null) {
-            ProtocolUtils.writeVarInt(buf, registries.size());
-            registries.forEach(k -> ProtocolUtils.writeString(buf, k));
+            ProtocolUtils.writeVarInt(buf, dataPackRegistries.size());
+            dataPackRegistries.forEach(k -> ProtocolUtils.writeString(buf, k));
         }
 
         ByteBuf output = Unpooled.buffer();

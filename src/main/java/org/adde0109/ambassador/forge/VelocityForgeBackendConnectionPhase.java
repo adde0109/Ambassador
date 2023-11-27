@@ -9,6 +9,8 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
+import org.adde0109.ambassador.forge.packet.Context;
+import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.pipeline.CommandDecoderErrorCatcher;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperCodec;
 
@@ -57,8 +59,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
   VelocityForgeBackendConnectionPhase() {
   }
 
-  public void handle(VelocityServerConnection server, ConnectedPlayer player, LoginPluginMessage message) {
-
+  public void handle(VelocityServerConnection server, ConnectedPlayer player, IForgeLoginWrapperPacket message) {
     VelocityForgeBackendConnectionPhase newPhase = getNewPhase(server,message);
 
     server.setConnectionPhase(newPhase);
@@ -75,7 +76,6 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
         return;
       }
     }
-    message.retain();
     player.getConnection().write(message);
     //Forge server
     //To avoid unnecessary resets, we wait until we get the handshake even if we know that we should
@@ -93,7 +93,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
   }
 
   private VelocityForgeBackendConnectionPhase getNewPhase(VelocityServerConnection serverConnection,
-                                                       LoginPluginMessage packet) {
+                                                       IForgeLoginWrapperPacket<Context> packet) {
     VelocityForgeBackendConnectionPhase phaseToTransitionTo = nextPhase();
     if (phaseToTransitionTo != this) {
       phaseToTransitionTo.onTransitionToNewPhase(serverConnection);

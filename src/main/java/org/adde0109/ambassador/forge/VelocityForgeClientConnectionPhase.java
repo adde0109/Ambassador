@@ -148,7 +148,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
   public ModListReplyPacket clientModList;
 
-  public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket msg, VelocityServerConnection server) {
+  public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket<Context.ClientContext> msg, VelocityServerConnection server) {
     player.setPhase(nextPhase());
 
     if (msg instanceof ModListReplyPacket replyPacket) {
@@ -164,7 +164,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       replyPacket.getChannels().put(MinecraftChannelIdentifier.from("ambassador:commands"),"1");
     }
 
-    player.getConnectionInFlight().getConnection().write(msg.encode());
+    player.getConnectionInFlight().getConnection().write(msg);
     return true;
   }
 

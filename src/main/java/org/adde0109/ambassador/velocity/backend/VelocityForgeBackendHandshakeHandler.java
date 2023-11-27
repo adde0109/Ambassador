@@ -34,12 +34,13 @@ public class VelocityForgeBackendHandshakeHandler extends ChannelInboundHandlerA
       ForgeLoginSessionHandler forgeLoginSessionHandler = new ForgeLoginSessionHandler((LoginSessionHandler) connection.getActiveSessionHandler(), serverConnection,server);
       connection.setActiveSessionHandler(StateRegistry.LOGIN, forgeLoginSessionHandler);
 
-      player.getConnection().getChannel().pipeline().addBefore(
+      serverConnection.getConnection().getChannel().pipeline().addBefore(
               Connections.HANDLER,
-              ForgeConstants.FORGE_HANDSHAKE_DECODER, new ForgeLoginWrapperCodec());
-      player.getConnection().getChannel().pipeline().addAfter(
+              ForgeConstants.FORGE_HANDSHAKE_DECODER, new ForgeLoginWrapperCodec(
+                      player.getConnection().getType() == ForgeConstants.ForgeFML3));
+      serverConnection.getConnection().getChannel().pipeline().addAfter(
               ForgeConstants.FORGE_HANDSHAKE_DECODER,
-              ForgeConstants.FORGE_HANDSHAKE_HANDLER, new ForgeLoginWrapperHandler(player));
+              ForgeConstants.FORGE_HANDSHAKE_HANDLER, new ForgeLoginWrapperHandler(serverConnection));
     }
 
     ctx.pipeline().fireChannelActive();
