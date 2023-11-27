@@ -33,6 +33,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
     } else if (in instanceof LoginPluginResponse msg && loginWrapperIDs.remove(Integer.valueOf(msg.getId()))) {
       context = Context.createContext(msg.getId(), msg.isSuccess());
     } else {
+      ctx.fireChannelRead(in.retain());
       return;
     }
 
