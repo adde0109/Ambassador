@@ -95,5 +95,8 @@ public class ModListPacket implements IForgeLoginWrapperPacket<Context> {
         return channels;
     }
 
+    public List<String> getRegistries() {
+        return registries;
+    }
 
 }

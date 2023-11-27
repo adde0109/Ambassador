@@ -22,6 +22,7 @@ import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 import org.adde0109.ambassador.velocity.client.ClientPacketQueue;
 
+import javax.swing.*;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
@@ -144,18 +145,20 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     public boolean consideredComplete() {
       return true;
     }
+
+    public void complete(ConnectedPlayer player, boolean resettable) {  }
+
   };
 
-  public ModListReplyPacket clientModList;
+  public ForgeHandshake forgeHandshake = new ForgeHandshake();
 
   public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket<Context.ClientContext> msg, VelocityServerConnection server) {
-    player.setPhase(nextPhase());
 
     if (msg instanceof ModListReplyPacket replyPacket) {
       ModInfo modInfo = new ModInfo("FML2", replyPacket.getMods().stream().map(
               (v) -> new ModInfo.Mod(v,"1")).toList());
       player.setModInfo(modInfo);
-      this.clientModList = replyPacket;
+      forgeHandshake.setModListReplyPacket(replyPacket);
       if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
         complete(player);
         player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(true);
@@ -165,6 +168,10 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     }
 
     player.getConnectionInFlight().getConnection().write(msg);
+
+    player.setPhase(nextPhase());
+    nextPhase().forgeHandshake = this.forgeHandshake;
+
     return true;
   }
 
@@ -181,11 +188,11 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     if (resettable) {
       player.setPhase(RESETTABLE);
       RESETTABLE.onTransitionToNewPhase(player);
-      RESETTABLE.clientModList = clientModList;
+      RESETTABLE.forgeHandshake = forgeHandshake;
     } else {
       player.setPhase(COMPLETE);
       COMPLETE.onTransitionToNewPhase(player);
-      COMPLETE.clientModList = clientModList;
+      COMPLETE.forgeHandshake = forgeHandshake;
     }
   }
 

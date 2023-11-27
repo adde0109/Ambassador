@@ -9,10 +9,15 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
-import org.adde0109.ambassador.forge.packet.Context;
-import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
+import org.adde0109.ambassador.forge.packet.*;
 import org.adde0109.ambassador.forge.pipeline.CommandDecoderErrorCatcher;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperCodec;
+import org.checkerframework.checker.units.qual.A;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.zip.Adler32;
+import java.util.zip.Checksum;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
   NOT_STARTED() {
@@ -54,7 +59,8 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     }
   };
 
-
+  public Checksum registryChecksum;
+  CountDownLatch remainingRegistries;
 
   VelocityForgeBackendConnectionPhase() {
   }
@@ -66,17 +72,46 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
 
     //Reset client if not ready to receive new handshake
     VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
-    if (clientPhase != VelocityForgeClientConnectionPhase.NOT_STARTED) {
+    if (clientPhase == VelocityForgeClientConnectionPhase.RESETTABLE) {
       //Initial Forge
       //Forge -> Forge
       clientPhase.resetConnectionPhase(player);
-      if (clientPhase == VelocityForgeClientConnectionPhase.COMPLETE)
-      {
-        //Do not continue if the client can't reset.
-        return;
+    }
+
+    if (clientPhase != VelocityForgeClientConnectionPhase.COMPLETE) {
+      if (message instanceof ModListPacket modListPacket) {
+        clientPhase.forgeHandshake = new ForgeHandshake();
+      }
+      if (message instanceof RegistryPacket registryPacket) {
+        clientPhase.forgeHandshake.addRegistry(registryPacket);
+      }
+      player.getConnection().write(message);
+    } else {
+      if (message instanceof ModListPacket modListPacket) {
+        registryChecksum = new Adler32();
+        remainingRegistries = new CountDownLatch(modListPacket.getRegistries().size());
+        CompletableFuture.runAsync(() -> {
+          try {
+            remainingRegistries.await();
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+        }).thenAcceptAsync((v) -> {
+          if (clientPhase.forgeHandshake.getRegistryChecksum().getValue() == registryChecksum.getValue()) {
+            server.ensureConnected().write(clientPhase.forgeHandshake.getModListReplyPacket());
+          } else {
+            //Player needs to be kicked in order to continue.
+           server.disconnect();
+          }
+        }, server.ensureConnected().eventLoop());
+      } else if (message instanceof RegistryPacket registryPacket) {
+        server.getConnection().write(new ACKPacket(Context.createContext(message.getContext().getResponseID(), true)));
+        registryChecksum.update(registryPacket.getSnapshot());
+        remainingRegistries.countDown();
+      } else if (message instanceof ConfigDataPacket) {
+        server.getConnection().write(new ACKPacket(Context.createContext(message.getContext().getResponseID(), true)));
       }
     }
-    player.getConnection().write(message);
     //Forge server
     //To avoid unnecessary resets, we wait until we get the handshake even if we know that we should
     //reset because that the previous server was Forge.

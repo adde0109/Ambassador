@@ -7,6 +7,7 @@ import io.netty.buffer.Unpooled;
 public class RegistryPacket implements IForgeLoginWrapperPacket<Context> {
 
   private final String registryName;
+
   private final byte[] snapshot;
 
   private final Context context;
@@ -47,5 +48,9 @@ public class RegistryPacket implements IForgeLoginWrapperPacket<Context> {
   @Override
   public Context getContext() {
     return context;
+  }
+
+  public byte[] getSnapshot() {
+    return snapshot;
   }
 }
