@@ -1,24 +1,30 @@
 package org.adde0109.ambassador.forge.packet;
 
-import com.velocitypowered.proxy.protocol.util.DeferredByteBufHolder;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
-public class GenericForgeLoginWrapperPacket<T extends Context> extends DeferredByteBufHolder implements IForgeLoginWrapperPacket<T> {
+public class GenericForgeLoginWrapperPacket<T extends Context> implements IForgeLoginWrapperPacket<T> {
+
+  private final byte[] content;
   private final T context;
 
-  GenericForgeLoginWrapperPacket(ByteBuf input, T context) {
-    super(input);
+  GenericForgeLoginWrapperPacket(byte[] content, T context) {
+    this.content = content;
     this.context = context;
   }
 
 
-  static public GenericForgeLoginWrapperPacket<Context> create(ByteBuf input, Context context) {
-    return new GenericForgeLoginWrapperPacket<>(input.retain(), context);
+  static public GenericForgeLoginWrapperPacket<?> read(ByteBuf input, Context context) {
+    byte[] content = new byte[input.readableBytes()];
+    input.readBytes(content);
+    return new GenericForgeLoginWrapperPacket<>(content, context);
   }
 
   @Override
   public ByteBuf encode() {
-    return content();
+    ByteBuf buf = Unpooled.buffer();
+    buf.writeBytes(content);
+    return buf;
   }
 
   @Override

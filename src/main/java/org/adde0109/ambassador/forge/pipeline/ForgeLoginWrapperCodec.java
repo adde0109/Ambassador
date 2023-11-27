@@ -70,7 +70,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
             case 5:
               if (FML3) {
                 buf.readerIndex(originalReaderIndex);
-                out.add(ModDataPacket.create(buf.retain(), context));
+                out.add(ModDataPacket.read(buf, context));
                 break;
               }
             default:
@@ -80,7 +80,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
       }
     } catch (DecoderException e) {
       buf.readerIndex(originalReaderIndex);
-      out.add(GenericForgeLoginWrapperPacket.create(buf.retain(), context));
+      out.add(GenericForgeLoginWrapperPacket.read(buf, context));
     }
   }
 
@@ -95,6 +95,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
       ProtocolUtils.writeString(wrapped, "fml:handshake");
       ProtocolUtils.writeVarInt(wrapped, encoded.readableBytes());
       wrapped.writeBytes(encoded);
+      encoded.release();
     }
 
     if (msg.getContext() instanceof Context.ClientContext clientContext) {
