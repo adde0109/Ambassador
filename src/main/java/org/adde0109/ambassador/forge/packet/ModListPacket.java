@@ -79,12 +79,7 @@ public class ModListPacket implements IForgeLoginWrapperPacket<Context> {
             dataPackRegistries.forEach(k -> ProtocolUtils.writeString(buf, k));
         }
 
-        ByteBuf output = Unpooled.buffer();
-        ProtocolUtils.writeString(output, "fml:handshake");
-        ProtocolUtils.writeVarInt(output, buf.readableBytes());
-        output.writeBytes(buf);
-
-        return output;
+        return buf;
     }
 
     @Override

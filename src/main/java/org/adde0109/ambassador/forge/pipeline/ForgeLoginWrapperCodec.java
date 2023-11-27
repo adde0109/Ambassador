@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.util.DeferredByteBufHolder;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.MessageToMessageCodec;
@@ -29,7 +30,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
     Context context;
     if (in instanceof LoginPluginMessage msg && msg.getChannel().equals("fml:loginwrapper")) {
       context = Context.createContext(msg.getId());
-    } else if (in instanceof LoginPluginResponse msg && loginWrapperIDs.remove(msg.getId()) != null) {
+    } else if (in instanceof LoginPluginResponse msg && loginWrapperIDs.remove(Integer.valueOf(msg.getId()))) {
       context = Context.createContext(msg.getId(), msg.isSuccess());
     } else {
       return;
@@ -50,6 +51,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
               break;
             case 99:
               out.add(new ACKPacket(clientContext));
+              break;
             default:
               throw new DecoderException();
           }
@@ -59,11 +61,17 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
               out.add(ModListPacket.read(buf, context, FML3));
               break;
             case 3:
-              out.add(new RegistryPacket(context));
+              out.add(RegistryPacket.read(buf, context, FML3));
               break;
             case 4:
-              out.add(new ConfigDataPacket(context));
+              out.add(ConfigDataPacket.read(buf, context, FML3));
               break;
+            case 5:
+              if (FML3) {
+                buf.readerIndex(originalReaderIndex);
+                out.add(ModDataPacket.create(buf.retain(), context));
+                break;
+              }
             default:
               throw new DecoderException();
           }
@@ -77,11 +85,24 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
 
   @Override
   protected void encode(ChannelHandlerContext ctx, IForgeLoginWrapperPacket<?> msg, List<Object> out) throws Exception {
-    if (msg.getContext() instanceof Context.ClientContext clientContext) {
-      out.add(new LoginPluginResponse(clientContext.getResponseID(), clientContext.success(), msg.encode()));
+    ByteBuf wrapped;
+    if (msg instanceof GenericForgeLoginWrapperPacket<?>) {
+      wrapped = msg.encode();
     } else {
-      out.add(new LoginPluginMessage(msg.getContext().getResponseID(), "fml:loginwrapper", msg.encode()));
-      this.loginWrapperIDs.add(msg.getContext().getResponseID());
+      wrapped = Unpooled.buffer();
+      ByteBuf encoded = msg.encode();
+      ProtocolUtils.writeString(wrapped, "fml:handshake");
+      ProtocolUtils.writeVarInt(wrapped, encoded.readableBytes());
+      wrapped.writeBytes(encoded);
+    }
+
+    if (msg.getContext() instanceof Context.ClientContext clientContext) {
+      out.add(new LoginPluginResponse(clientContext.getResponseID(), clientContext.success(), wrapped));
+    } else {
+      out.add(new LoginPluginMessage(msg.getContext().getResponseID(), "fml:loginwrapper", wrapped));
+      if (!(msg instanceof ModDataPacket)) {
+        this.loginWrapperIDs.add(msg.getContext().getResponseID());
+      }
     }
   }
 }

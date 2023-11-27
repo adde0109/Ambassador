@@ -1,5 +1,6 @@
 package org.adde0109.ambassador.forge.packet;
 
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -12,7 +13,11 @@ public class ACKPacket implements IForgeLoginWrapperPacket<Context.ClientContext
     }
     @Override
     public ByteBuf encode() {
-        return Unpooled.EMPTY_BUFFER;
+        ByteBuf buf = Unpooled.buffer();
+
+        ProtocolUtils.writeVarInt(buf, 99);
+
+        return buf;
     }
 
     @Override
