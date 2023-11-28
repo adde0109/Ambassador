@@ -1,16 +1,16 @@
 package org.adde0109.ambassador.forge;
 
-import org.adde0109.ambassador.forge.packet.ModListPacket;
 import org.adde0109.ambassador.forge.packet.ModListReplyPacket;
 import org.adde0109.ambassador.forge.packet.RegistryPacket;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.Adler32;
 import java.util.zip.Checksum;
 
 public class ForgeHandshake {
     private ModListReplyPacket modListReplyPacket;
-    private final Checksum registryChecksum = new Adler32();
+    private final Map<String, Long> registries = new HashMap<>();
 
     public ForgeHandshake() {
     }
@@ -24,10 +24,16 @@ public class ForgeHandshake {
     }
 
     public void addRegistry(RegistryPacket packet) {
+        Checksum registryChecksum = new Adler32();
         registryChecksum.update(packet.getSnapshot());
+        registries.put(packet.getRegistryName(), registryChecksum.getValue());
     }
 
-    public Checksum getRegistryChecksum() {
-        return registryChecksum;
+    public Map<String, Long> getRegistries() {
+        return registries;
+    }
+
+    public boolean isCompatible(ForgeHandshake handshake) {
+        return this.registries.equals(handshake.registries);
     }
 }

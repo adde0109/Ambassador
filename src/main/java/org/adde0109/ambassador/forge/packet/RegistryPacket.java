@@ -50,6 +50,10 @@ public class RegistryPacket implements IForgeLoginWrapperPacket<Context> {
     return context;
   }
 
+  public String getRegistryName() {
+    return registryName;
+  }
+
   public byte[] getSnapshot() {
     return snapshot;
   }

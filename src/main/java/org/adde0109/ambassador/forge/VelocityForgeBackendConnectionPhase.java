@@ -14,6 +14,8 @@ import org.adde0109.ambassador.forge.pipeline.CommandDecoderErrorCatcher;
 import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperCodec;
 import org.checkerframework.checker.units.qual.A;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.zip.Adler32;
@@ -59,7 +61,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     }
   };
 
-  public Checksum registryChecksum;
+  public ForgeHandshake handshake = new ForgeHandshake();
   CountDownLatch remainingRegistries;
 
   VelocityForgeBackendConnectionPhase() {
@@ -88,7 +90,6 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
       player.getConnection().write(message);
     } else {
       if (message instanceof ModListPacket modListPacket) {
-        registryChecksum = new Adler32();
         remainingRegistries = new CountDownLatch(modListPacket.getRegistries().size());
         CompletableFuture.runAsync(() -> {
           try {
@@ -97,19 +98,20 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
             throw new RuntimeException(e);
           }
         }).thenAcceptAsync((v) -> {
-          if (clientPhase.forgeHandshake.getRegistryChecksum().getValue() == registryChecksum.getValue()) {
+          if (clientPhase.forgeHandshake.isCompatible(handshake)) {
             server.ensureConnected().write(clientPhase.forgeHandshake.getModListReplyPacket());
           } else {
-            //Player needs to be kicked in order to continue.
-           server.disconnect();
+            server.disconnect();
           }
         }, server.ensureConnected().eventLoop());
       } else if (message instanceof RegistryPacket registryPacket) {
         server.getConnection().write(new ACKPacket(Context.createContext(message.getContext().getResponseID(), true)));
-        registryChecksum.update(registryPacket.getSnapshot());
+        handshake.addRegistry(registryPacket);
         remainingRegistries.countDown();
       } else if (message instanceof ConfigDataPacket) {
         server.getConnection().write(new ACKPacket(Context.createContext(message.getContext().getResponseID(), true)));
+      } else if (message instanceof GenericForgeLoginWrapperPacket<?>) {
+        //Save for after completion and send as plugin message
       }
     }
     //Forge server
