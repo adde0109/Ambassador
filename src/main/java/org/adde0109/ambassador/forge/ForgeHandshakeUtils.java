@@ -3,6 +3,12 @@ package org.adde0109.ambassador.forge;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.DecoderException;
+import org.adde0109.ambassador.forge.packet.Context;
+import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 
 import java.nio.charset.StandardCharsets;
 
@@ -109,5 +115,40 @@ public class ForgeHandshakeUtils {
     writeVarInt(stream,dataAndPacketId.length);
     stream.write(dataAndPacketId);
     return stream.toByteArray();
+  }
+
+  public static class SilentGearUtils {
+    public static boolean isSilentGearPacket(byte[] data) {
+      ByteBuf buf = Unpooled.wrappedBuffer(data);
+      String channel = null;
+      try {
+        channel = ProtocolUtils.readString(buf);
+      } catch (DecoderException e) {
+      } finally {
+        buf.release();
+      }
+      return channel != null && channel.equals("silentgear:network");
+    }
+
+    public static class ACKPacket implements IForgeLoginWrapperPacket<Context.ClientContext> {
+      private final Context.ClientContext context;
+
+      public ACKPacket(Context.ClientContext context) {
+        this.context = context;
+      }
+      @Override
+      public ByteBuf encode() {
+        ByteBuf buf = Unpooled.buffer();
+
+        ProtocolUtils.writeVarInt(buf, 3);
+
+        return buf;
+      }
+
+      @Override
+      public Context.ClientContext getContext() {
+        return context;
+      }
+    }
   }
 }

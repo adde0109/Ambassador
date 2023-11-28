@@ -9,6 +9,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.MessageToMessageCodec;
+import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
 import org.adde0109.ambassador.forge.packet.*;
 
 import java.util.ArrayList;
@@ -90,9 +91,13 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
     if (msg instanceof GenericForgeLoginWrapperPacket<?>) {
       wrapped = msg.encode();
     } else {
+      String channel = "fml:handshake";
+      if (msg instanceof ForgeHandshakeUtils.SilentGearUtils.ACKPacket) {
+        channel = "silentgear:network";
+      }
       wrapped = Unpooled.buffer();
       ByteBuf encoded = msg.encode();
-      ProtocolUtils.writeString(wrapped, "fml:handshake");
+      ProtocolUtils.writeString(wrapped, channel);
       ProtocolUtils.writeVarInt(wrapped, encoded.readableBytes());
       wrapped.writeBytes(encoded);
       encoded.release();

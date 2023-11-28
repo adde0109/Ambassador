@@ -27,6 +27,10 @@ public class GenericForgeLoginWrapperPacket<T extends Context> implements IForge
     return buf;
   }
 
+  public byte[] getContent() {
+    return content;
+  }
+
   @Override
   public T getContext() {
     return context;

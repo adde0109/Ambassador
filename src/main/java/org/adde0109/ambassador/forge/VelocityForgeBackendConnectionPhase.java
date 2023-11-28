@@ -7,19 +7,12 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import org.adde0109.ambassador.forge.packet.*;
 import org.adde0109.ambassador.forge.pipeline.CommandDecoderErrorCatcher;
-import org.adde0109.ambassador.forge.pipeline.ForgeLoginWrapperCodec;
-import org.checkerframework.checker.units.qual.A;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.zip.Adler32;
-import java.util.zip.Checksum;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
   NOT_STARTED() {
@@ -110,8 +103,10 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
         remainingRegistries.countDown();
       } else if (message instanceof ConfigDataPacket) {
         server.getConnection().write(new ACKPacket(Context.createContext(message.getContext().getResponseID(), true)));
-      } else if (message instanceof GenericForgeLoginWrapperPacket<?>) {
-        //Save for after completion and send as plugin message
+      } else if (message instanceof GenericForgeLoginWrapperPacket<?> packet
+              && ForgeHandshakeUtils.SilentGearUtils.isSilentGearPacket(packet.getContent())) {
+        server.getConnection().write(new ForgeHandshakeUtils.SilentGearUtils.ACKPacket(
+                Context.createContext(message.getContext().getResponseID(), true)));
       }
     }
     //Forge server
