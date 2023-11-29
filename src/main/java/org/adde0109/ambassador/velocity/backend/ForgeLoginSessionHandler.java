@@ -53,10 +53,6 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(Disconnect packet) {
-    if (!serverConnection.getPlayer().getPhase().consideredComplete()) {
-      serverConnection.getPlayer().handleConnectionException(serverConnection.getServer(), packet, false);
-      return true;
-    }
     return original.handle(packet);
   }
 

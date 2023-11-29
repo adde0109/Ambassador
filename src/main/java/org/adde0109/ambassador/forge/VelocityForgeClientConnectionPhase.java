@@ -38,7 +38,12 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     public void resetConnectionPhase(ConnectedPlayer player) {
       RESETTABLE.resetConnectionPhase(player);
     }
-  },
+
+    @Override
+    public boolean consideredComplete() {
+      return true;
+    }
+    },
   IN_PROGRESS {
   },
   RESETTABLE {
