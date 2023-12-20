@@ -141,8 +141,6 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
         buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
                 + player.getVirtualHost().get().getPort()).getBytes(StandardCharsets.UTF_8));
         player.getConnection().write(new PluginMessage("srvredirect:red", buf));
-      } else {
-        player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage());
       }
     }
 

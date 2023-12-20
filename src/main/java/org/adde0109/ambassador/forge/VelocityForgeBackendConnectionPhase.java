@@ -8,6 +8,7 @@ import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
+import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.*;
 import org.adde0109.ambassador.forge.pipeline.CommandDecoderErrorCatcher;
 
@@ -91,7 +92,8 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
             throw new RuntimeException(e);
           }
         }).thenAcceptAsync((v) -> {
-          if (clientPhase.forgeHandshake.isCompatible(handshake)) {
+          if (Ambassador.getInstance().config.isBypassRegistryCheck() ||
+                  clientPhase.forgeHandshake.isCompatible(handshake)) {
             server.ensureConnected().write(clientPhase.forgeHandshake.getModListReplyPacket());
           } else {
             server.disconnect();

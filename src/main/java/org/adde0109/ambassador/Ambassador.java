@@ -96,7 +96,6 @@ public class Ambassador {
 
       Path configPath = dataDirectory.resolve("Ambassador.toml");
       config = AmbassadorConfig.read(configPath);
-      config.validate();
 
       inject();
 
@@ -111,7 +110,6 @@ public class Ambassador {
     try {
       Path configPath = dataDirectory.resolve("Ambassador.toml");
       final AmbassadorConfig newconfig = AmbassadorConfig.read(configPath);
-      newconfig.validate();
 
       config = newconfig;
     } catch (Exception e) {

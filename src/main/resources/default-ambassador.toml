@@ -1,9 +1,18 @@
 # Do not change this
-config-version = "1.1"
+config-version = "2.0"
 
-# Message displayed to the player when disconnected from proxy during server switch.
-# Legacy color codes and JSON are accepted.
-disconnect-reset-message = "&6Please reconnect"
 # How much time the player has to reconnect before canceling the server switch. (In seconds)
-server-switch-cancellation-time = 120
+# Only for players with ServerRedirect mod installed. Set to -1 to disable ServerRedirect mod support.
+serverRedirectTimeout = 30
+
+# Silence PCF absence warnings.
 silence-warnings = false
+
+# Allow server switches without reset even though the new server's registries don't match the old server’s registry.
+# Large modpacks often needs this set to true. Warning: This is a safety measure and setting this to true
+# can lead to unstable behaviour.
+bypass-registry-checks = false
+
+# Allow player to switch without reset when the server's mods don't match. Even more unstable than bypassRegistryCheck.
+# Warning: This is a safety measure for when bypassRegistryCheck is true. Setting this to also true can cause crashes.
+bypass-mod-checks = false
