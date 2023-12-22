@@ -91,7 +91,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
             throw new RuntimeException(e);
           }
         }).thenAcceptAsync((v) -> {
-          if (clientPhase.forgeHandshake.isCompatible(handshake)) {
+          if (true) {
             server.ensureConnected().write(clientPhase.forgeHandshake.getModListReplyPacket());
           } else {
             server.disconnect();
