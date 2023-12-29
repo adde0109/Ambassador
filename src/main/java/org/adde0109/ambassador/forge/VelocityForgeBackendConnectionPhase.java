@@ -8,6 +8,8 @@ import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
+import net.kyori.adventure.identity.Identity;
+import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.*;
 import org.adde0109.ambassador.forge.pipeline.CommandDecoderErrorCatcher;
@@ -85,6 +87,12 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     } else {
       if (message instanceof ModListPacket modListPacket) {
         remainingRegistries = new CountDownLatch(modListPacket.getRegistries().size());
+
+        if (Ambassador.getInstance().config.isDebugMode())
+          player.sendMessage(Component.text("Expecting " + modListPacket.getRegistries().size() +
+                  " packets from server " + server.getServer().getServerInfo().getName()));
+
+        long time = System.currentTimeMillis();
         CompletableFuture.runAsync(() -> {
           try {
             remainingRegistries.await();
@@ -92,10 +100,20 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
             throw new RuntimeException(e);
           }
         }).thenAcceptAsync((v) -> {
+
+          if(Ambassador.getInstance().config.isDebugMode()) {
+            player.sendMessage(Component.text("Handshake took: " + (System.currentTimeMillis()-time)/1000 + " seconds"));
+            player.sendMessage(Component.text("Avg packet time" +
+                    ((System.currentTimeMillis()-time)/1000)/modListPacket.getRegistries().size() + " seconds"));
+          }
+
           if (Ambassador.getInstance().config.isBypassRegistryCheck() ||
                   clientPhase.forgeHandshake.isCompatible(handshake)) {
             server.ensureConnected().write(clientPhase.forgeHandshake.getModListReplyPacket());
           } else {
+            Ambassador.getInstance().logger.error("Unable to switch due to the registries of " +
+                    server.getServer().getServerInfo().getName() + " being different from the registries of " +
+                    player.getConnectedServer().getServer().getServerInfo().getName());
             server.disconnect();
           }
         }, server.ensureConnected().eventLoop());

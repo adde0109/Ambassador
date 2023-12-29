@@ -16,3 +16,6 @@ bypass-registry-checks = false
 # Allow player to switch without reset when the server's mods don't match. Even more unstable than bypassRegistryCheck.
 # Warning: This is a safety measure for when bypassRegistryCheck is true. Setting this to also true can cause crashes.
 bypass-mod-checks = false
+
+#Only for debug/troubleshooting
+debug-mode = false

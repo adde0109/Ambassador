@@ -14,6 +14,7 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.Context;
 import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
@@ -197,9 +198,17 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       COMPLETE.onTransitionToNewPhase(player);
       COMPLETE.forgeHandshake = forgeHandshake;
     }
+
+    if (Ambassador.getInstance().config.isDebugMode()) {
+      player.sendMessage(Component.text("Forge handshake complete"));
+      player.sendMessage(Component.text(resettable ? "Resettable" : "Non-resettable"));
+    }
   }
 
   private boolean isResettable(ConnectedPlayer player) {
+    if (Ambassador.getInstance().config.isDebugMode()) {
+      player.sendMessage(Component.text("Scanning modlist for client reset mods"));
+    }
     if (player.getModInfo().isPresent()) {
       return player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("clientresetpacket")));
     }

@@ -25,10 +25,14 @@ public class AmbassadorConfig {
   @Expose
   private boolean bypassModCheck = false;
 
-  private AmbassadorConfig(boolean silenceWarnings, boolean bypassRegistryCheck, boolean bypassModCheck) {
+  @Expose
+  private boolean debugMode = false;
+
+  private AmbassadorConfig(boolean silenceWarnings, boolean bypassRegistryCheck, boolean bypassModCheck, boolean debugMode) {
     this.silenceWarnings = silenceWarnings;
     this.bypassRegistryCheck = bypassRegistryCheck;
     this.bypassModCheck = bypassModCheck;
+    this.debugMode = debugMode;
   };
 
   public static AmbassadorConfig read(Path path) throws IOException {
@@ -74,7 +78,9 @@ public class AmbassadorConfig {
 
     boolean bypassModCheck = config.getOrElse("bypass-mod-checks", false);
 
-    return new AmbassadorConfig(bypassRegistryCheck, bypassModCheck, silenceWarnings);
+    boolean debugMode = config.getOrElse("debug-mode", false);
+
+    return new AmbassadorConfig(bypassRegistryCheck, bypassModCheck, silenceWarnings, debugMode);
   }
 
   public int getServerSwitchCancellationTime() {
@@ -91,5 +97,9 @@ public class AmbassadorConfig {
 
   public boolean isBypassModCheck() {
     return bypassModCheck;
+  }
+
+  public boolean isDebugMode() {
+    return debugMode;
   }
 }
