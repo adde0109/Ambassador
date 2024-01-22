@@ -101,7 +101,12 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       return true;
     }
 
-    public void complete(ConnectedPlayer player, boolean resettable) {  }
+    @Override
+    public void complete(ConnectedPlayer player, clientResetType resetType) {
+      if (Ambassador.getInstance().config.isDebugMode()) {
+        player.sendMessage(Component.text("Forge -> Vanilla - Not resetting"));
+      }
+    }
 
   };
 

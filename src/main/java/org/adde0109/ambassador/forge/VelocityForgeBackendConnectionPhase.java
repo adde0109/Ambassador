@@ -83,11 +83,14 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     if (clientPhase.getResetType() == VelocityForgeClientConnectionPhase.clientResetType.CRP ||
             clientPhase.getResetType() == VelocityForgeClientConnectionPhase.clientResetType.SR) {
       clientPhase.resetConnectionPhase(player);
+      player.getConnection().write(message);
+      return;
     }
 
 
     //STILL WIP
     if (!Ambassador.getInstance().config.isDebugMode()) {
+      server.disconnect();
       return;
     }
 
