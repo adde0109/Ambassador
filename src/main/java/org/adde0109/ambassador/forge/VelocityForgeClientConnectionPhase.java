@@ -11,7 +11,7 @@ import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginMessagePacket;
-import com.velocitypowered.proxy.protocol.packet.PluginMessage;
+import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.kyori.adventure.text.Component;
@@ -208,7 +208,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
         }
 
         if (connection.getState() == StateRegistry.PLAY || connection.getState() == StateRegistry.CONFIG) {
-          connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
+          connection.write(new PluginMessagePacket("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
           connection.setState(StateRegistry.LOGIN);
         } else {
           connection.write(new LoginPluginMessagePacket(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
@@ -230,7 +230,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
         ProtocolUtils.writeVarInt(buf, 0);
         buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
                 + player.getVirtualHost().get().getPort()).getBytes(StandardCharsets.UTF_8));
-        player.getConnection().write(new PluginMessage("srvredirect:red", buf));
+        player.getConnection().write(new PluginMessagePacket("srvredirect:red", buf));
       }
     };
 

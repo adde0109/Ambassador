@@ -7,8 +7,8 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
-import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
-import com.velocitypowered.proxy.protocol.packet.PluginMessage;
+import com.velocitypowered.proxy.protocol.packet.AvailableCommandsPacket;
+import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
@@ -169,9 +169,9 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
   }
 
   @Override
-  public boolean handle(VelocityServerConnection server, ConnectedPlayer player, PluginMessage message) {
+  public boolean handle(VelocityServerConnection server, ConnectedPlayer player, PluginMessagePacket message) {
     if (message.getChannel().equals("ambassador:commands")) {
-      AvailableCommands packet = new AvailableCommands();
+      AvailableCommandsPacket packet = new AvailableCommandsPacket();
       packet.decode(message.content(), ProtocolUtils.Direction.CLIENTBOUND,server.getConnection().getProtocolVersion());
       server.getConnection().getActiveSessionHandler().handle(packet);
       return true;

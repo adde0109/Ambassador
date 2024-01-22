@@ -7,7 +7,7 @@ import com.velocitypowered.proxy.connection.client.HandshakeSessionHandler;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
-import com.velocitypowered.proxy.protocol.packet.Handshake;
+import com.velocitypowered.proxy.protocol.packet.HandshakePacket;
 import io.netty.buffer.ByteBuf;
 import org.adde0109.ambassador.forge.ForgeConstants;
 
@@ -22,7 +22,7 @@ public class VelocityHandshakeSessionHandler extends HandshakeSessionHandler  {
   }
 
   @Override
-  public boolean handle(Handshake handshake) {
+  public boolean handle(HandshakePacket handshake) {
     handshake.handle(original);
     if (connection.getType() == ConnectionTypes.VANILLA) {
       final String[] markerSplit = handshake.getServerAddress().split("\0");

@@ -1,13 +1,13 @@
 package org.adde0109.ambassador.velocity.client;
 
-import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
+import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccessPacket;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 
 public class OutboundSuccessHolder extends ChannelOutboundHandlerAdapter {
 
-  private ServerLoginSuccess packet;
+  private ServerLoginSuccessPacket packet;
   private ChannelHandlerContext ctx;
 
   @Override
@@ -17,7 +17,7 @@ public class OutboundSuccessHolder extends ChannelOutboundHandlerAdapter {
 
   @Override
   public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-    if ((msg instanceof ServerLoginSuccess packet)) {
+    if ((msg instanceof ServerLoginSuccessPacket packet)) {
       this.packet = packet;
     } else {
       ctx.write(msg, promise);

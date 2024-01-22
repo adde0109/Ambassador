@@ -8,7 +8,7 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
-import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
+import com.velocitypowered.proxy.protocol.packet.AvailableCommandsPacket;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -43,7 +43,7 @@ public class CommandDecoderErrorCatcher extends ChannelInboundHandlerAdapter {
       int packetId = ProtocolUtils.readVarInt(buf);
       MinecraftPacket packet = registry.createPacket(packetId);
       buf.readerIndex(originalReaderIndex);
-      if (packet instanceof AvailableCommands) {
+      if (packet instanceof AvailableCommandsPacket) {
         try {
           ((MinecraftDecoder) ctx.pipeline().get(Connections.MINECRAFT_DECODER)).channelRead(ctx, msg);
         } catch (QuietRuntimeException | CorruptedFrameException e) {
