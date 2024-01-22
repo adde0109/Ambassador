@@ -12,8 +12,12 @@ public class Context {
     return new Context(responseID);
   }
 
-  public static ClientContext createContext(int responseID, boolean clientSuccess) {
+  public static ClientContext createClientContext(int responseID, boolean clientSuccess) {
     return new ClientContext(responseID,clientSuccess);
+  }
+
+  public static ClientContext fromContext(Context context, boolean clientSuccess) {
+    return new ClientContext(context.responseID,clientSuccess);
   }
 
   public int getResponseID() {

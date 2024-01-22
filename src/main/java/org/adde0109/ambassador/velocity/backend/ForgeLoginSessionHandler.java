@@ -7,7 +7,7 @@ import com.velocitypowered.proxy.connection.backend.*;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.Disconnect;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import com.velocitypowered.proxy.protocol.packet.LoginPluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
 import io.netty.buffer.Unpooled;
@@ -30,22 +30,16 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     if ((serverConnection.getPhase() instanceof VelocityForgeBackendConnectionPhase phase)) {
       phase.onLoginSuccess(serverConnection,serverConnection.getPlayer());
     }
-    original.handle(packet);
-    if (serverConnection.getConnection() == null) {
-      return true;
-    }
-    ConnectedPlayer player = serverConnection.getPlayer();
-    if (!(serverConnection.getConnection().getType() instanceof ForgeFMLConnectionType)) {
-      if (player.getConnectedServer() == null ||
-              player.getConnectedServer().getConnection().getType() instanceof ForgeFMLConnectionType) {
-        //Initial Vanilla - test if the client can be reset
-        //Forge -> vanilla
-        player.getPhase().resetConnectionPhase(player);
-        player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
-      }
-    } else {
+
+    original.handle(packet);  //Can lead to disconnect.
+
+    //If we are still connected after handling that package.
+    if (serverConnection.getConnection() != null) {
+      ConnectedPlayer player = serverConnection.getPlayer();
+
       ((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player);
     }
+
     return true;
   }
 

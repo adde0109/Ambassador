@@ -1,7 +1,7 @@
 package org.adde0109.ambassador.forge.pipeline;
 
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import com.velocitypowered.proxy.protocol.packet.LoginPluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponse;
 import com.velocitypowered.proxy.protocol.util.DeferredByteBufHolder;
 import io.netty.buffer.ByteBuf;
@@ -29,10 +29,10 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
     ByteBuf buf = in.content();
 
     Context context;
-    if (in instanceof LoginPluginMessage msg && msg.getChannel().equals("fml:loginwrapper")) {
+    if (in instanceof LoginPluginMessagePacket msg && msg.getChannel().equals("fml:loginwrapper")) {
       context = Context.createContext(msg.getId());
     } else if (in instanceof LoginPluginResponse msg && loginWrapperIDs.remove(Integer.valueOf(msg.getId()))) {
-      context = Context.createContext(msg.getId(), msg.isSuccess());
+      context = Context.createClientContext(msg.getId(), msg.isSuccess());
     } else {
       ctx.fireChannelRead(in.retain());
       return;
@@ -106,7 +106,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
     if (msg.getContext() instanceof Context.ClientContext clientContext) {
       out.add(new LoginPluginResponse(clientContext.getResponseID(), clientContext.success(), wrapped));
     } else {
-      out.add(new LoginPluginMessage(msg.getContext().getResponseID(), "fml:loginwrapper", wrapped));
+      out.add(new LoginPluginMessagePacket(msg.getContext().getResponseID(), "fml:loginwrapper", wrapped));
       if (!(msg instanceof ModDataPacket)) {
         this.loginWrapperIDs.add(msg.getContext().getResponseID());
       }

@@ -6,6 +6,7 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommands;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import net.kyori.adventure.identity.Identity;
@@ -18,10 +19,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhase {
-  NOT_STARTED() {
+  NOT_STARTED {
     @Override
     VelocityForgeBackendConnectionPhase nextPhase() {
-      return WAITING_FOR_ACK;
+      return IN_PROGRESS;
     }
 
     @Override
@@ -30,7 +31,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
       return true;
     }
   },
-  WAITING_FOR_ACK() {
+  IN_PROGRESS {
     @Override
     public void onLoginSuccess(VelocityServerConnection serverCon, ConnectedPlayer player) {
       serverCon.setConnectionPhase(VelocityForgeBackendConnectionPhase.COMPLETE);
@@ -50,7 +51,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     }
   },
 
-  COMPLETE() {
+  COMPLETE {
     @Override
     public boolean consideredComplete() {
       return true;
@@ -68,15 +69,29 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
 
     server.setConnectionPhase(newPhase);
 
+    if (player.getPhase() == VelocityForgeClientConnectionPhase.NOT_STARTED ||
+            player.getPhase() == VelocityForgeClientConnectionPhase.IN_PROGRESS) {
+      //Initial Forge
+      player.getConnection().write(message);
+      return;
+    }
+
+    //Forge -> Forge
+
     //Reset client if not ready to receive new handshake
     VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
-    if (clientPhase == VelocityForgeClientConnectionPhase.RESETTABLE) {
-      //Initial Forge
-      //Forge -> Forge
+    if (clientPhase.getResetType() == VelocityForgeClientConnectionPhase.clientResetType.CRP ||
+            clientPhase.getResetType() == VelocityForgeClientConnectionPhase.clientResetType.SR) {
       clientPhase.resetConnectionPhase(player);
     }
 
-    if (clientPhase != VelocityForgeClientConnectionPhase.COMPLETE) {
+
+    //STILL WIP
+    if (!Ambassador.getInstance().config.isDebugMode()) {
+      return;
+    }
+
+    if (clientPhase.getResetType() == VelocityForgeClientConnectionPhase.clientResetType.NONE) {
       if (message instanceof ModListPacket modListPacket) {
         clientPhase.forgeHandshake = new ForgeHandshake();
       }
@@ -118,15 +133,15 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
           }
         }, server.ensureConnected().eventLoop());
       } else if (message instanceof RegistryPacket registryPacket) {
-        server.getConnection().write(new ACKPacket(Context.createContext(message.getContext().getResponseID(), true)));
+        server.getConnection().write(new ACKPacket(Context.fromContext(message.getContext(), true)));
         handshake.addRegistry(registryPacket);
         remainingRegistries.countDown();
       } else if (message instanceof ConfigDataPacket) {
-        server.getConnection().write(new ACKPacket(Context.createContext(message.getContext().getResponseID(), true)));
+        server.getConnection().write(new ACKPacket(Context.fromContext(message.getContext(), true)));
       } else if (message instanceof GenericForgeLoginWrapperPacket<?> packet
               && ForgeHandshakeUtils.SilentGearUtils.isSilentGearPacket(packet.getContent())) {
         server.getConnection().write(new ForgeHandshakeUtils.SilentGearUtils.ACKPacket(
-                Context.createContext(message.getContext().getResponseID(), true)));
+                Context.fromContext(message.getContext(), true)));
       }
     }
     //Forge server

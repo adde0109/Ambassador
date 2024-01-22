@@ -10,7 +10,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
-import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
+import com.velocitypowered.proxy.protocol.packet.LoginPluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -23,9 +23,7 @@ import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
 import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 import org.adde0109.ambassador.velocity.client.ClientPacketQueue;
 
-import javax.swing.*;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
 
 public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase {
 
@@ -36,8 +34,10 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     }
 
     @Override
-    public void resetConnectionPhase(ConnectedPlayer player) {
-      RESETTABLE.resetConnectionPhase(player);
+    public void complete(ConnectedPlayer player) {
+      //When no handshake has taken place.
+      //Test if the client supports CRP.
+      clientResetType.CRP.doReset(player);
     }
 
     @Override
@@ -46,47 +46,6 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     }
     },
   IN_PROGRESS {
-  },
-  RESETTABLE {
-    @Override
-    void onTransitionToNewPhase(ConnectedPlayer player) {
-      //Plugins may now send packets to client
-      player.getConnection().getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
-      ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
-    }
-
-    @Override
-    public void resetConnectionPhase(ConnectedPlayer player) {
-      MinecraftConnection connection = player.getConnection();
-
-      //There is no going back even if the handshake fails. No reason to still be connected.
-      if (player.getConnectedServer() != null) {
-        player.getConnectedServer().disconnect();
-        player.setConnectedServer(null);
-      }
-      //Don't handle anything from the server until the reset has completed.
-      //player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
-
-      if (connection.getState() == StateRegistry.PLAY || connection.getState() == StateRegistry.CONFIG) {
-        connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
-        connection.setState(StateRegistry.LOGIN);
-      } else {
-        connection.write(new LoginPluginMessage(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
-      }
-
-      //Prepare to receive reset ACK
-      connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER,
-              ForgeConstants.RESET_LISTENER, new FML2CRPMResetCompleteDecoder());
-
-      //Transition
-      player.setPhase(WAITING_RESET);
-      WAITING_RESET.onTransitionToNewPhase(player);
-    }
-
-    @Override
-    public boolean consideredComplete() {
-      return true;
-    }
   },
   WAITING_RESET {
     @Override
@@ -103,6 +62,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     @Override
     public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket msg, VelocityServerConnection server) {
       if (msg.getContext().getResponseID() == 98) {
+        //Reset complete
         player.getConnection().getChannel().pipeline().remove(ForgeConstants.RESET_LISTENER);
         player.setPhase(NOT_STARTED);
 
@@ -110,7 +70,10 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
         if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
           // -> vanilla
-          complete(player, ((Context.ClientContext) msg.getContext()).success());
+          complete(player, ((Context.ClientContext) msg.getContext()).success() ? clientResetType.CRP : clientResetType.UNKNOWN);
+        }
+
+        if (player.getConnectionInFlight() != null) {
           player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(true);
         }
 
@@ -130,19 +93,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
     @Override
     public void resetConnectionPhase(ConnectedPlayer player) {
-      Ambassador.getTemporaryForced().put(player.getUsername(), player.getConnectionInFlight().getServer(),
-              Ambassador.getInstance().config.getServerSwitchCancellationTime(), TimeUnit.SECONDS);
-      //Disconnect - Reset
-      if(player.getModInfo().isPresent()
-              && player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("serverredirect")
-              || mod.getId().equals("srvredirect:red")))
-              && player.getVirtualHost().isPresent()) {
-        ByteBuf buf = Unpooled.buffer();
-        ProtocolUtils.writeVarInt(buf, 0);
-        buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
-                + player.getVirtualHost().get().getPort()).getBytes(StandardCharsets.UTF_8));
-        player.getConnection().write(new PluginMessage("srvredirect:red", buf));
-      }
+      getResetType().doReset(player);
     }
 
     @Override
@@ -154,7 +105,10 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
   };
 
+  //TODO: Make a new class that's linked to each player with these fields instead of having them in this phase class
   public ForgeHandshake forgeHandshake = new ForgeHandshake();
+
+  private clientResetType resetType = clientResetType.UNKNOWN;
 
   public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket<Context.ClientContext> msg, VelocityServerConnection server) {
 
@@ -180,39 +134,43 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
   }
 
   public void complete(ConnectedPlayer player) {
-    complete(player, isResettable(player));
+    complete(player, getResetType(player));
   }
 
-  public void complete(ConnectedPlayer player, boolean resettable) {
+  public void complete(ConnectedPlayer player, clientResetType resetType) {
     MinecraftConnection connection = player.getConnection();
+    //Send Login Success to client
     ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
             .sendPacket();
     connection.setState(StateRegistry.PLAY);
 
-    if (resettable) {
-      player.setPhase(RESETTABLE);
-      RESETTABLE.onTransitionToNewPhase(player);
-      RESETTABLE.forgeHandshake = forgeHandshake;
-    } else {
-      player.setPhase(COMPLETE);
-      COMPLETE.onTransitionToNewPhase(player);
-      COMPLETE.forgeHandshake = forgeHandshake;
-    }
+    //Change phase to COMPLETE
+    player.setPhase(COMPLETE);
+    COMPLETE.resetType = resetType;
+    COMPLETE.onTransitionToNewPhase(player);
+    COMPLETE.forgeHandshake = forgeHandshake;
 
     if (Ambassador.getInstance().config.isDebugMode()) {
       player.sendMessage(Component.text("Forge handshake complete"));
-      player.sendMessage(Component.text(resettable ? "Resettable" : "Non-resettable"));
+      player.sendMessage(Component.text("Reset type: " + resetType.toString()));
     }
   }
 
-  private boolean isResettable(ConnectedPlayer player) {
+  private clientResetType getResetType(ConnectedPlayer player) {
     if (Ambassador.getInstance().config.isDebugMode()) {
       player.sendMessage(Component.text("Scanning modlist for client reset mods"));
     }
     if (player.getModInfo().isPresent()) {
-      return player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("clientresetpacket")));
+      if (player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("clientresetpacket")))) {
+        return clientResetType.CRP;
+      } else if (Ambassador.getInstance().config.getServerSwitchCancellationTime() >= 0 &&
+              player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("serverredirect")
+              || mod.getId().equals("srvredirect:red")))
+              && player.getVirtualHost().isPresent()) {
+        return clientResetType.SR;
+      }
     }
-    return false;
+    return clientResetType.NONE;
   }
 
   void onTransitionToNewPhase(ConnectedPlayer player) {
@@ -228,5 +186,55 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     return false;
   }
 
+  public clientResetType getResetType() {
+    return resetType;
+  }
+  enum clientResetType {
+    UNKNOWN,
+    NONE,
+    CRP {
+      @Override
+      void doReset(ConnectedPlayer player) {
+        MinecraftConnection connection = player.getConnection();
 
+        //There is no going back even if the handshake fails. No reason to still be connected.
+        if (player.getConnectedServer() != null) {
+          player.getConnectedServer().disconnect();
+          player.setConnectedServer(null);
+        }
+        //Don't handle anything from the server until the reset has completed.
+        if (player.getConnectionInFlight() != null) {
+          player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
+        }
+
+        if (connection.getState() == StateRegistry.PLAY || connection.getState() == StateRegistry.CONFIG) {
+          connection.write(new PluginMessage("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
+          connection.setState(StateRegistry.LOGIN);
+        } else {
+          connection.write(new LoginPluginMessagePacket(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
+        }
+
+        //Prepare to receive reset ACK
+        connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER,
+                ForgeConstants.RESET_LISTENER, new FML2CRPMResetCompleteDecoder());
+
+        //Transition
+        player.setPhase(WAITING_RESET);
+        WAITING_RESET.onTransitionToNewPhase(player);
+      }
+    },
+    SR {
+      @Override
+      void doReset(ConnectedPlayer player) {
+        ByteBuf buf = Unpooled.buffer();
+        ProtocolUtils.writeVarInt(buf, 0);
+        buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
+                + player.getVirtualHost().get().getPort()).getBytes(StandardCharsets.UTF_8));
+        player.getConnection().write(new PluginMessage("srvredirect:red", buf));
+      }
+    };
+
+    void doReset(ConnectedPlayer player) {
+    }
+  }
 }
