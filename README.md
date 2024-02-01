@@ -19,7 +19,7 @@ Unlike other solutions, this plugin does not require any special modifications t
   
 1.16.5: https://github.com/Just-Chaldea/Forge-Client-Reset-Packet
 
-1.18.2+: https://github.com/FoxyCraftNetwork/Forge-Client-Reset-Packet
+1.18.2+: https://www.curseforge.com/minecraft/mc-mods/forge-client-reset-packet-forward
 
 ## Stuck on "Negotiating":
 This is an issue with Client Reset Packet Mod being partly incompatible with certain mods on the client. Please remove incompatible mods on the client if you have this issue. (Yes, this also includes client-side only mods.)
