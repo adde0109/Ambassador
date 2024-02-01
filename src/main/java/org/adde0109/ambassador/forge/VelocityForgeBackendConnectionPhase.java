@@ -6,10 +6,8 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
-import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommandsPacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
-import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.*;
@@ -69,32 +67,13 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
 
     server.setConnectionPhase(newPhase);
 
-    if (player.getPhase() == VelocityForgeClientConnectionPhase.NOT_STARTED ||
-            player.getPhase() == VelocityForgeClientConnectionPhase.IN_PROGRESS) {
-      //Initial Forge
-      player.getConnection().write(message);
-      return;
-    }
-
     //Forge -> Forge
 
-    //Reset client if not ready to receive new handshake
     VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
-    if (clientPhase.getResetType() == VelocityForgeClientConnectionPhase.clientResetType.CRP ||
-            clientPhase.getResetType() == VelocityForgeClientConnectionPhase.clientResetType.SR) {
-      clientPhase.resetConnectionPhase(player);
-      player.getConnection().write(message);
-      return;
-    }
 
 
-    //STILL WIP
-    if (!Ambassador.getInstance().config.isDebugMode()) {
-      server.disconnect();
-      return;
-    }
-
-    if (clientPhase.getResetType() == VelocityForgeClientConnectionPhase.clientResetType.NONE) {
+    if (!clientPhase.consideredComplete()) {
+      //Initial Forge
       if (message instanceof ModListPacket modListPacket) {
         clientPhase.forgeHandshake = new ForgeHandshake();
       }
@@ -103,6 +82,14 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
       }
       player.getConnection().write(message);
     } else {
+      //Reset client if not ready to receive new handshake
+      if (clientPhase.getResetType() == VelocityForgeClientConnectionPhase.ClientResetType.CRP ||
+              clientPhase.getResetType() == VelocityForgeClientConnectionPhase.ClientResetType.SR) {
+        clientPhase.resetConnectionPhase(player);
+        player.getConnection().write(message);
+        return;
+      }
+
       if (message instanceof ModListPacket modListPacket) {
         remainingRegistries = new CountDownLatch(modListPacket.getRegistries().size());
 
@@ -120,9 +107,9 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
         }).thenAcceptAsync((v) -> {
 
           if(Ambassador.getInstance().config.isDebugMode()) {
-            player.sendMessage(Component.text("Handshake took: " + (System.currentTimeMillis()-time)/1000 + " seconds"));
+            player.sendMessage(Component.text("Handshake took: " + (System.currentTimeMillis()-time) + " ms"));
             player.sendMessage(Component.text("Avg packet time" +
-                    ((System.currentTimeMillis()-time)/1000)/modListPacket.getRegistries().size() + " seconds"));
+                    (System.currentTimeMillis()-time)/modListPacket.getRegistries().size() + " ms"));
           }
 
           if (Ambassador.getInstance().config.isBypassRegistryCheck() ||

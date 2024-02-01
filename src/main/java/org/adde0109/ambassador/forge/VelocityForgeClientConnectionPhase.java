@@ -37,17 +37,12 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     public void complete(ConnectedPlayer player) {
       //When no handshake has taken place.
       //Test if the client supports CRP.
-      clientResetType.CRP.doReset(player);
-    }
-
-    @Override
-    public boolean consideredComplete() {
-      return true;
+      ClientResetType.CRP.doReset(player);
     }
     },
   IN_PROGRESS {
   },
-  WAITING_RESET {
+  WAITING_RESET() {
     @Override
     void onTransitionToNewPhase(ConnectedPlayer player) {
       //We unregister so no plugin sees this client while the client is being reset.
@@ -70,7 +65,7 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
         if (!(server.getConnection().getType() instanceof ForgeFMLConnectionType)) {
           // -> vanilla
-          complete(player, ((Context.ClientContext) msg.getContext()).success() ? clientResetType.CRP : clientResetType.UNKNOWN);
+          complete(player, ((Context.ClientContext) msg.getContext()).success() ? ClientResetType.CRP : null);
         }
 
         if (player.getConnectionInFlight() != null) {
@@ -84,8 +79,15 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     }
   },
   COMPLETE {
+
+    private ClientResetType resetType = ClientResetType.UNKNOWN;
     @Override
     void onTransitionToNewPhase(ConnectedPlayer player) {
+      //Send Login Success to client
+      MinecraftConnection connection = player.getConnection();
+      ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
+              .sendPacket();
+      connection.setState(StateRegistry.PLAY);
       //Plugins may now send packets to client
       player.getConnection().getChannel().pipeline().remove(ForgeConstants.PLUGIN_PACKET_QUEUE);
       ((VelocityServer) Ambassador.getInstance().server).registerConnection(player);
@@ -102,18 +104,28 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     }
 
     @Override
-    public void complete(ConnectedPlayer player, clientResetType resetType) {
+    public void complete(ConnectedPlayer player) {
       if (Ambassador.getInstance().config.isDebugMode()) {
-        player.sendMessage(Component.text("Forge -> Vanilla - Not resetting"));
+        player.sendMessage(Component.text("Not resetting"));
       }
     }
 
+    @Override
+    void setResetType(ConnectedPlayer player, ClientResetType resetType) {
+      this.resetType = resetType;
+      if (Ambassador.getInstance().config.isDebugMode()) {
+        player.sendMessage(Component.text("Reset type: " + this.resetType.toString()));
+      }
+    }
+
+    @Override
+    public ClientResetType getResetType() {
+      return resetType;
+    }
   };
 
   //TODO: Make a new class that's linked to each player with these fields instead of having them in this phase class
   public ForgeHandshake forgeHandshake = new ForgeHandshake();
-
-  private clientResetType resetType = clientResetType.UNKNOWN;
 
   public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket<Context.ClientContext> msg, VelocityServerConnection server) {
 
@@ -137,45 +149,22 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
 
     return true;
   }
-
   public void complete(ConnectedPlayer player) {
-    complete(player, getResetType(player));
+    complete(player, null);
   }
 
-  public void complete(ConnectedPlayer player, clientResetType resetType) {
-    MinecraftConnection connection = player.getConnection();
-    //Send Login Success to client
-    ((OutboundSuccessHolder) connection.getChannel().pipeline().get(ForgeConstants.SERVER_SUCCESS_LISTENER))
-            .sendPacket();
-    connection.setState(StateRegistry.PLAY);
-
+  public void complete(ConnectedPlayer player, ClientResetType resetType) {
     //Change phase to COMPLETE
     player.setPhase(COMPLETE);
-    COMPLETE.resetType = resetType;
     COMPLETE.onTransitionToNewPhase(player);
     COMPLETE.forgeHandshake = forgeHandshake;
+    if (resetType != null) {
+      COMPLETE.setResetType(player, resetType);
+    }
 
     if (Ambassador.getInstance().config.isDebugMode()) {
       player.sendMessage(Component.text("Forge handshake complete"));
-      player.sendMessage(Component.text("Reset type: " + resetType.toString()));
     }
-  }
-
-  private clientResetType getResetType(ConnectedPlayer player) {
-    if (Ambassador.getInstance().config.isDebugMode()) {
-      player.sendMessage(Component.text("Scanning modlist for client reset mods"));
-    }
-    if (player.getModInfo().isPresent()) {
-      if (player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("clientresetpacket")))) {
-        return clientResetType.CRP;
-      } else if (Ambassador.getInstance().config.getServerSwitchCancellationTime() >= 0 &&
-              player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("serverredirect")
-              || mod.getId().equals("srvredirect:red")))
-              && player.getVirtualHost().isPresent()) {
-        return clientResetType.SR;
-      }
-    }
-    return clientResetType.NONE;
   }
 
   void onTransitionToNewPhase(ConnectedPlayer player) {
@@ -191,10 +180,35 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
     return false;
   }
 
-  public clientResetType getResetType() {
-    return resetType;
+  public ClientResetType getResetType() {
+    return COMPLETE.getResetType();
   }
-  enum clientResetType {
+
+  private ClientResetType getResetType(ConnectedPlayer player) {
+    if (Ambassador.getInstance().config.isDebugMode()) {
+      player.sendMessage(Component.text("Scanning modlist for client reset mods"));
+    }
+    if (player.getModInfo().isPresent()) {
+      if (player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("clientresetpacket")))) {
+        return ClientResetType.CRP;
+      } else if (Ambassador.getInstance().config.getServerSwitchCancellationTime() >= 0 &&
+              player.getModInfo().get().getMods().stream().anyMatch((mod -> mod.getId().equals("serverredirect")
+                      || mod.getId().equals("srvredirect:red")))
+              && player.getVirtualHost().isPresent()) {
+        return ClientResetType.SR;
+      }
+    }
+    return ClientResetType.NONE;
+  }
+
+  void setResetType(ConnectedPlayer player, ClientResetType resetType) {
+    COMPLETE.setResetType(player, resetType);
+  }
+  public void updateResetType(ConnectedPlayer player) {
+    COMPLETE.setResetType(player, getResetType(player));
+  }
+
+  public enum ClientResetType {
     UNKNOWN,
     NONE,
     CRP {

@@ -37,7 +37,8 @@ public class ForgeLoginSessionHandler implements MinecraftSessionHandler {
     if (serverConnection.getConnection() != null) {
       ConnectedPlayer player = serverConnection.getPlayer();
 
-      ((VelocityForgeClientConnectionPhase) player.getPhase()).complete(player);
+      VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
+      clientPhase.complete(player);
     }
 
     return true;

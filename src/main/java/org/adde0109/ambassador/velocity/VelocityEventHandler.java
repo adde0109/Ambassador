@@ -71,6 +71,12 @@ public class VelocityEventHandler {
     player.setModInfo(new ModInfo("Channels", event.getChannels().stream().map((id) -> {
       return new ModInfo.Mod(id.getId(), "");
     }).toList()));
+
+    VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
+    //If reset typ is still unknown, set it!
+    if (clientPhase.getResetType() == VelocityForgeClientConnectionPhase.ClientResetType.UNKNOWN) {
+      clientPhase.updateResetType(player);
+    }
   }
 
 }
