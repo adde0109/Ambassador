@@ -13,12 +13,13 @@ Unlike other solutions, this plugin does not require any special modifications t
 - https://github.com/caunt/BungeeForge (Legacy forwarding)
 
 ## Features
-* Server switching using kick to reset the client with configureble message and switch timeout.
-* ServerRedirect support for auto-reconnecting during switch.
-* Server switching using client mod for instant server switching: 
-https://github.com/Just-Chaldea/Forge-Client-Reset-Packet 
-1.18.2 and 1.19 fork:
-https://github.com/adde0109/Forge-Client-Reset-Packet
+* Server switching without any client side mod when the servers are similar. (Mods must match)
+* ServerRedirect support for server switching.
+* Server switching using Client Reset Packet Mod for instant server switching:
+  
+1.16.5: https://github.com/Just-Chaldea/Forge-Client-Reset-Packet
+
+1.18.2+: https://github.com/FoxyCraftNetwork/Forge-Client-Reset-Packet
 
 ## Stuck on "Negotiating":
 This is an issue with Client Reset Packet Mod being partly incompatible with certain mods on the client. Please remove incompatible mods on the client if you have this issue. (Yes, this also includes client-side only mods.)
