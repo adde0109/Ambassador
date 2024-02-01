@@ -21,6 +21,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.network.ConnectionManager;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertyRegistry;
 import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertySerializer;
@@ -46,7 +47,7 @@ import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdenti
 public class Ambassador {
 
   //Don't forget to update checkCompatibleVersion() when changing this value
-  private static final String minVelocityVersion = "velocity-3.2.0-SNAPSHOT-266";
+  private static final String minVelocityVersion = "velocity-3.3.0-SNAPSHOT-330";
 
   public ProxyServer server;
   public final Logger logger;
@@ -75,11 +76,11 @@ public class Ambassador {
   boolean checkCompatibleVersion() {
     //Update this when changing minVelocityVersion
     try {
-      MinecraftConnection.class.getDeclaredMethod("setActiveSessionHandler", StateRegistry.class);
-    } catch (NoSuchMethodException e) {
-      return false;
+      Class.forName("com.velocitypowered.proxy.protocol.packet.DisconnectPacket");
+    } catch (ClassNotFoundException e) {
+        throw new RuntimeException(e);
     }
-    return true;
+      return true;
   }
 
   @Subscribe(order = PostOrder.LAST)
