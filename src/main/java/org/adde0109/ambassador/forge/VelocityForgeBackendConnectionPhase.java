@@ -90,6 +90,15 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
         return;
       }
 
+      if (clientPhase.forgeHandshake.getModListReplyPacket() == null) {
+        //We have nothing to respond with during this handshake. Unable to proceed.
+        Ambassador.getInstance().logger.error("Unable for {} to switch servers. " +
+                "Vanilla({}) -> Forge({}) switch without reset is not yet supported!", player.getGameProfile().getName(),
+                player.getConnectedServer().getServerInfo().getName(), server.getServerInfo().getName());
+        server.disconnect();
+        return;
+      }
+
       if (message instanceof ModListPacket modListPacket) {
         remainingRegistries = new CountDownLatch(modListPacket.getRegistries().size());
 
