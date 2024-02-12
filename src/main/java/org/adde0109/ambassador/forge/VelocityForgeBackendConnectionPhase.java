@@ -62,7 +62,7 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
   VelocityForgeBackendConnectionPhase() {
   }
 
-  public void handle(VelocityServerConnection server, ConnectedPlayer player, IForgeLoginWrapperPacket message) {
+  public void handle(VelocityServerConnection server, ConnectedPlayer player, IForgeLoginWrapperPacket<Context> message) {
     VelocityForgeBackendConnectionPhase newPhase = getNewPhase(server,message);
 
     server.setConnectionPhase(newPhase);
@@ -137,10 +137,9 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
         remainingRegistries.countDown();
       } else if (message instanceof ConfigDataPacket) {
         server.getConnection().write(new ACKPacket(Context.fromContext(message.getContext(), true)));
-      } else if (message instanceof GenericForgeLoginWrapperPacket<?> packet
-              && ForgeHandshakeUtils.SilentGearUtils.isSilentGearPacket(packet.getContent())) {
-        server.getConnection().write(new ForgeHandshakeUtils.SilentGearUtils.ACKPacket(
-                Context.fromContext(message.getContext(), true)));
+      } else if (message instanceof GenericForgeLoginWrapperPacket<Context> packet
+              && ForgeHandshakeUtils.ThirdPartyRegistryUtils.isThirdPartyPacket(packet)) {
+        server.getConnection().write(ForgeHandshakeUtils.ThirdPartyRegistryUtils.getThirdPartyChannel(packet));
       }
     }
     //Forge server

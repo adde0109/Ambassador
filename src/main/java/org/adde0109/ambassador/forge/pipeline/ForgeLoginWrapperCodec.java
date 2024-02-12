@@ -9,7 +9,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.MessageToMessageCodec;
-import org.adde0109.ambassador.forge.ForgeHandshakeUtils;
+import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.*;
 
 import java.util.ArrayList;
@@ -28,21 +28,27 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
   protected void decode(ChannelHandlerContext ctx, DeferredByteBufHolder in, List<Object> out) throws Exception {
     ByteBuf buf = in.content();
 
-    Context context;
-    if (in instanceof LoginPluginMessagePacket msg && msg.getChannel().equals("fml:loginwrapper")) {
-      context = Context.createContext(msg.getId());
-    } else if (in instanceof LoginPluginResponsePacket msg && loginWrapperIDs.remove(Integer.valueOf(msg.getId()))) {
-      context = Context.createClientContext(msg.getId(), msg.isSuccess());
-    } else {
-      ctx.fireChannelRead(in.retain());
-      return;
-    }
-
     int originalReaderIndex = buf.readerIndex();
+
+    String channel;
+
     try {
-      String channel = ProtocolUtils.readString(buf);
+      Context context;
+      if (in instanceof LoginPluginMessagePacket msg && msg.getChannel().equals("fml:loginwrapper")) {
+        channel = ProtocolUtils.readString(buf);
+        context = Context.createContext(msg.getId(), channel);
+      } else if (in instanceof LoginPluginResponsePacket msg && loginWrapperIDs.remove(Integer.valueOf(msg.getId()))) {
+        channel = ProtocolUtils.readString(buf);
+        context = Context.createClientContext(msg.getId(), msg.isSuccess(), channel);
+      } else {
+        //Not a loginWrapperPacket
+        buf.readerIndex(originalReaderIndex);
+        ctx.fireChannelRead(in.retain());
+        return;
+      }
+
       if (!channel.equals("fml:handshake")) {
-        throw new DecoderException();
+        out.add(GenericForgeLoginWrapperPacket.read(buf, context));
       } else {
         int length = ProtocolUtils.readVarInt(buf);
         int packetID = ProtocolUtils.readVarInt(buf);
@@ -55,7 +61,7 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
               out.add(new ACKPacket(clientContext));
               break;
             default:
-              throw new DecoderException();
+              throw new DecoderException("Unrecognised packet ID: " + packetID);
           }
         } else {
           switch (packetID) {
@@ -75,39 +81,33 @@ public class ForgeLoginWrapperCodec extends MessageToMessageCodec<DeferredByteBu
                 break;
               }
             default:
-              throw new DecoderException();
+              throw new DecoderException("Unrecognised packet ID: " + packetID);
           }
         }
       }
-    } catch (DecoderException e) {
-      buf.readerIndex(originalReaderIndex);
-      out.add(GenericForgeLoginWrapperPacket.read(buf, context));
+    } catch (DecoderException exception) {
+      Ambassador.getInstance().logger.error("Failed to decode a wrapped Forge login packet: ", exception);
     }
   }
 
   @Override
   protected void encode(ChannelHandlerContext ctx, IForgeLoginWrapperPacket<?> msg, List<Object> out) throws Exception {
     ByteBuf wrapped;
-    if (msg instanceof GenericForgeLoginWrapperPacket<?>) {
-      wrapped = msg.encode();
-    } else {
-      String channel = "fml:handshake";
-      if (msg instanceof ForgeHandshakeUtils.SilentGearUtils.ACKPacket) {
-        channel = "silentgear:network";
-      }
-      wrapped = Unpooled.buffer();
-      ByteBuf encoded = msg.encode();
-      ProtocolUtils.writeString(wrapped, channel);
-      ProtocolUtils.writeVarInt(wrapped, encoded.readableBytes());
-      wrapped.writeBytes(encoded);
-      encoded.release();
-    }
+
+    String channel = msg.getContext().getChannelName();
+
+    wrapped = Unpooled.buffer();
+    ByteBuf encoded = msg.encode();
+    ProtocolUtils.writeString(wrapped, channel);
+    ProtocolUtils.writeVarInt(wrapped, encoded.readableBytes());
+    wrapped.writeBytes(encoded);
+    encoded.release();
 
     if (msg.getContext() instanceof Context.ClientContext clientContext) {
       out.add(new LoginPluginResponsePacket(clientContext.getResponseID(), clientContext.success(), wrapped));
     } else {
       out.add(new LoginPluginMessagePacket(msg.getContext().getResponseID(), "fml:loginwrapper", wrapped));
-      if (!(msg instanceof ModDataPacket)) {
+      if (!(msg instanceof ModDataPacket)) {  //ModDataPacket doesn't require a response
         this.loginWrapperIDs.add(msg.getContext().getResponseID());
       }
     }

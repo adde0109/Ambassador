@@ -6,8 +6,8 @@ import com.google.common.io.ByteStreams;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.DecoderException;
 import org.adde0109.ambassador.forge.packet.Context;
+import org.adde0109.ambassador.forge.packet.GenericForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 
 import java.nio.charset.StandardCharsets;
@@ -117,37 +117,59 @@ public class ForgeHandshakeUtils {
     return stream.toByteArray();
   }
 
-  public static class SilentGearUtils {
-    public static boolean isSilentGearPacket(byte[] data) {
-      ByteBuf buf = Unpooled.wrappedBuffer(data);
-      String channel = null;
-      try {
-        channel = ProtocolUtils.readString(buf);
-      } catch (DecoderException e) {
-      } finally {
-        buf.release();
-      }
-      return channel != null && channel.equals("silentgear:network");
+  public static class ThirdPartyRegistryUtils {
+
+    static enum ThirdPartyChannel {
+      SILENTGEAR_NETWORK {
+        @Override
+        public ThirdPartyRegistryUtils.ACKPacket generateResponsePacket(Context.ClientContext context) {
+          return new ACKPacket(context, 3);
+        }
+      },
+      ZETA_MAIN {
+        @Override
+        public ThirdPartyRegistryUtils.ACKPacket generateResponsePacket(Context.ClientContext context) {
+          return new ACKPacket(context, 99);
+        }
+      };
+      abstract public ACKPacket generateResponsePacket(Context.ClientContext context);
     }
 
-    public static class ACKPacket implements IForgeLoginWrapperPacket<Context.ClientContext> {
-      private final Context.ClientContext context;
-
-      public ACKPacket(Context.ClientContext context) {
-        this.context = context;
+    static boolean isThirdPartyPacket(GenericForgeLoginWrapperPacket<Context> packet) {
+      try {
+        Enum.valueOf(ThirdPartyChannel.class,
+                packet.getContext().getChannelName().replace(':', '_').toUpperCase());
+        return true;
+      } catch (IllegalArgumentException e) {
+        return false;
       }
-      @Override
+    }
+
+    static ThirdPartyChannel getThirdPartyChannel(GenericForgeLoginWrapperPacket<Context> packet) {
+      return Enum.valueOf(ThirdPartyChannel.class,
+              packet.getContext().getChannelName().replace(':', '_').toUpperCase());
+    }
+
+    static class ACKPacket implements IForgeLoginWrapperPacket<Context.ClientContext> {
+
+      private final Context.ClientContext context;
+      private final int packetID;
+      ACKPacket(Context.ClientContext context, int packetID) {
+        this.context = context;
+        this.packetID = packetID;
+      }
+
       public ByteBuf encode() {
         ByteBuf buf = Unpooled.buffer();
 
-        ProtocolUtils.writeVarInt(buf, 3);
+        ProtocolUtils.writeVarInt(buf, packetID);
 
         return buf;
       }
 
       @Override
       public Context.ClientContext getContext() {
-        return context;
+        return null;
       }
     }
   }
