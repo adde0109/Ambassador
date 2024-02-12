@@ -28,7 +28,7 @@ public class FML2CRPMResetCompleteDecoder extends ChannelInboundHandlerAdapter {
           if (id == 98) {
             try {
               ctx.fireChannelRead(GenericForgeLoginWrapperPacket.read(
-                      Unpooled.EMPTY_BUFFER, Context.createClientContext(id, success)));
+                      Unpooled.EMPTY_BUFFER, Context.createClientContext(id, success, "fml:handshake")));
             } finally {
               buf.release();
             }
