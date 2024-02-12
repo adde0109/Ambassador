@@ -169,7 +169,7 @@ public class ForgeHandshakeUtils {
 
       @Override
       public Context.ClientContext getContext() {
-        return null;
+        return context;
       }
     }
   }
