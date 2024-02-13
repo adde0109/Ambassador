@@ -8,7 +8,7 @@ public class GenericForgeLoginWrapperPacket<T extends Context> implements IForge
   private final byte[] content;
   private final T context;
 
-  GenericForgeLoginWrapperPacket(byte[] content, T context) {
+  public GenericForgeLoginWrapperPacket(byte[] content, T context) {
     this.content = content;
     this.context = context;
   }

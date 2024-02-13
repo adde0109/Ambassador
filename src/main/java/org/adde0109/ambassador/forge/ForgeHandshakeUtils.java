@@ -122,17 +122,17 @@ public class ForgeHandshakeUtils {
     static enum ThirdPartyChannel {
       SILENTGEAR_NETWORK {
         @Override
-        public ThirdPartyRegistryUtils.ACKPacket generateResponsePacket(Context.ClientContext context) {
+        public IForgeLoginWrapperPacket<Context.ClientContext> generateResponsePacket(Context.ClientContext context, ForgeHandshake completed) {
           return new ACKPacket(context, 3);
         }
       },
       ZETA_MAIN {
         @Override
-        public ThirdPartyRegistryUtils.ACKPacket generateResponsePacket(Context.ClientContext context) {
-          return new ACKPacket(context, 99);
+        public IForgeLoginWrapperPacket<Context.ClientContext> generateResponsePacket(Context.ClientContext context, ForgeHandshake completed) {
+          return new GenericForgeLoginWrapperPacket<Context.ClientContext>(completed.zetaFlagsPacket.getContent(), context);
         }
       };
-      abstract public ACKPacket generateResponsePacket(Context.ClientContext context);
+      abstract public IForgeLoginWrapperPacket<Context.ClientContext> generateResponsePacket(Context.ClientContext context, ForgeHandshake completed);
     }
 
     static boolean isThirdPartyPacket(GenericForgeLoginWrapperPacket<Context> packet) {

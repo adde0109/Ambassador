@@ -139,7 +139,11 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
         server.getConnection().write(new ACKPacket(Context.fromContext(message.getContext(), true)));
       } else if (message instanceof GenericForgeLoginWrapperPacket<Context> packet
               && ForgeHandshakeUtils.ThirdPartyRegistryUtils.isThirdPartyPacket(packet)) {
-        server.getConnection().write(ForgeHandshakeUtils.ThirdPartyRegistryUtils.getThirdPartyChannel(packet));
+          server.getConnection().write(
+                  ForgeHandshakeUtils.ThirdPartyRegistryUtils.getThirdPartyChannel(packet).
+                          generateResponsePacket(
+                                  Context.ClientContext.fromContext(packet.getContext(), true),
+                                  clientPhase.forgeHandshake));
       }
     }
     //Forge server

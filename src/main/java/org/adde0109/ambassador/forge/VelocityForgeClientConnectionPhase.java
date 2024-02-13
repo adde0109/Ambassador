@@ -17,6 +17,7 @@ import io.netty.buffer.Unpooled;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.Context;
+import org.adde0109.ambassador.forge.packet.GenericForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
 import org.adde0109.ambassador.forge.packet.ModListReplyPacket;
 import org.adde0109.ambassador.velocity.client.FML2CRPMResetCompleteDecoder;
@@ -128,6 +129,10 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
   public ForgeHandshake forgeHandshake = new ForgeHandshake();
 
   public boolean handle(ConnectedPlayer player, IForgeLoginWrapperPacket<Context.ClientContext> msg, VelocityServerConnection server) {
+
+    if (msg.getContext().getChannelName().equals("zeta:main")) {
+      forgeHandshake.zetaFlagsPacket = (GenericForgeLoginWrapperPacket<Context.ClientContext>) msg;
+    }
 
     if (msg instanceof ModListReplyPacket replyPacket) {
       ModInfo modInfo = new ModInfo("FML2", replyPacket.getMods().stream().map(
