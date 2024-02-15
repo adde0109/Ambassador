@@ -46,7 +46,7 @@ public class ModListPacket implements IForgeLoginWrapperPacket<Context> {
             registries.add(ProtocolUtils.readString(input, 32767));
 
         List<String> dataPackRegistries = null;
-        if (FML3) {
+        if (FML3 && input.isReadable()) {
             dataPackRegistries = new ArrayList<>();
             len = ProtocolUtils.readVarInt(input);
             for (int x = 0; x < len; x++)
