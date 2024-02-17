@@ -67,11 +67,19 @@ public class AmbassadorConfig {
 
     boolean silenceWarnings = config.getOrElse("silence-warnings", false);
 
+    int serverSwitchCancellationTime = config.getOrElse("serverRedirectTimeout", 30);
+
+    boolean bypassRegistryCheck = config.getOrElse("bypass-registry-checks", false);
+
+    boolean bypassModCheck = config.getOrElse("bypass-mod-checks", false);
+
+    boolean debugMode = config.getOrElse("debug-mode", false);
+
     String kickReconnectMessageString = config.getOrElse("disconnect-reset-message",
-            "<red>Please reconnect.</red>");
+            config.getOrElse("reconnect-message", "<red>Please reconnect.</red>"));
 
     //Upgrade config
-    if (configVersion <= 1.2) {
+    if (configVersion <= 2.0) {
       Files.delete(path);
       config = CommentedFileConfig.builder(path)
               .defaultData(defaultConfigLocation)
@@ -81,21 +89,14 @@ public class AmbassadorConfig {
               .build();
       config.load();
       config.set("silence-warnings", silenceWarnings);
+      config.set("serverRedirectTimeout", serverSwitchCancellationTime);
+      config.set("bypass-registry-checks", bypassRegistryCheck);
+      config.set("bypass-mod-checks", bypassModCheck);
+      config.set("debug-mode", debugMode);
       config.set("reconnect-message", kickReconnectMessageString);
     }
 
-    int serverSwitchCancellationTime = config.getOrElse("serverRedirectTimeout", 30);
-
-    boolean bypassRegistryCheck = config.getOrElse("bypass-registry-checks", false);
-
-    boolean bypassModCheck = config.getOrElse("bypass-mod-checks", false);
-
-    boolean debugMode = config.getOrElse("debug-mode", false);
-
     boolean enableKickReset = config.getOrElse("enable-kick-reset", false);
-
-    kickReconnectMessageString = config.getOrElse("reconnect-message",
-            "<red>Please reconnect.</red>");
 
     return new AmbassadorConfig(bypassRegistryCheck, bypassModCheck, silenceWarnings,
             debugMode, enableKickReset, kickReconnectMessageString);
