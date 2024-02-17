@@ -19,7 +19,6 @@ public class AmbassadorConfig {
 
   @Expose
   private boolean silenceWarnings = false;
-
   @Expose
   private boolean bypassRegistryCheck = false;
   @Expose
@@ -28,11 +27,20 @@ public class AmbassadorConfig {
   @Expose
   private boolean debugMode = false;
 
-  private AmbassadorConfig(boolean silenceWarnings, boolean bypassRegistryCheck, boolean bypassModCheck, boolean debugMode) {
+  @Expose
+  private boolean enableKickReset = false;
+
+  @Expose
+  private String kickReconnectMessageString = "<red>Please reconnect.</red>";
+
+  private AmbassadorConfig(boolean silenceWarnings, boolean bypassRegistryCheck, boolean bypassModCheck,
+                           boolean debugMode, boolean enableKickReset, String kickReconnectMessageString) {
     this.silenceWarnings = silenceWarnings;
     this.bypassRegistryCheck = bypassRegistryCheck;
     this.bypassModCheck = bypassModCheck;
     this.debugMode = debugMode;
+    this.enableKickReset = enableKickReset;
+    this.kickReconnectMessageString = kickReconnectMessageString;
   };
 
   public static AmbassadorConfig read(Path path) throws IOException {
@@ -59,6 +67,9 @@ public class AmbassadorConfig {
 
     boolean silenceWarnings = config.getOrElse("silence-warnings", false);
 
+    String kickReconnectMessageString = config.getOrElse("disconnect-reset-message",
+            "<red>Please reconnect.</red>");
+
     //Upgrade config
     if (configVersion <= 1.2) {
       Files.delete(path);
@@ -70,6 +81,7 @@ public class AmbassadorConfig {
               .build();
       config.load();
       config.set("silence-warnings", silenceWarnings);
+      config.set("reconnect-message", kickReconnectMessageString);
     }
 
     int serverSwitchCancellationTime = config.getOrElse("serverRedirectTimeout", 30);
@@ -80,7 +92,13 @@ public class AmbassadorConfig {
 
     boolean debugMode = config.getOrElse("debug-mode", false);
 
-    return new AmbassadorConfig(bypassRegistryCheck, bypassModCheck, silenceWarnings, debugMode);
+    boolean enableKickReset = config.getOrElse("enable-kick-reset", false);
+
+    kickReconnectMessageString = config.getOrElse("reconnect-message",
+            "<red>Please reconnect.</red>");
+
+    return new AmbassadorConfig(bypassRegistryCheck, bypassModCheck, silenceWarnings,
+            debugMode, enableKickReset, kickReconnectMessageString);
   }
 
   public int getServerSwitchCancellationTime() {
@@ -101,5 +119,13 @@ public class AmbassadorConfig {
 
   public boolean isDebugMode() {
     return debugMode;
+  }
+
+  public boolean isEnableKickReset() {
+    return enableKickReset;
+  }
+
+  public String getKickReconnectMessageString() {
+    return kickReconnectMessageString;
   }
 }

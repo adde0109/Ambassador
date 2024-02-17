@@ -25,6 +25,7 @@ import org.adde0109.ambassador.velocity.client.OutboundSuccessHolder;
 import org.adde0109.ambassador.velocity.client.ClientPacketQueue;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase {
 
@@ -255,6 +256,8 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
         buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
                 + player.getVirtualHost().get().getPort()).getBytes(StandardCharsets.UTF_8));
         player.getConnection().write(new PluginMessagePacket("srvredirect:red", buf));
+
+        Ambassador.getInstance().reconnectSwitchPlayer(player);
       }
     };
 

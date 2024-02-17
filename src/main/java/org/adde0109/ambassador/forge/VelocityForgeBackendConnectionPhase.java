@@ -72,6 +72,10 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
     VelocityForgeClientConnectionPhase clientPhase = (VelocityForgeClientConnectionPhase) player.getPhase();
 
 
+    if (!player.isActive()) {
+      return;
+    }
+
     if (!clientPhase.consideredComplete()) {
       //Initial Forge
       if (message instanceof ModListPacket modListPacket) {
@@ -92,10 +96,16 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
 
       if (clientPhase.forgeHandshake.getModListReplyPacket() == null) {
         //We have nothing to respond with during this handshake. Unable to proceed.
-        Ambassador.getInstance().logger.error("Unable for {} to switch servers. " +
-                "Vanilla({}) -> Forge({}) switch without reset is not yet supported!", player.getGameProfile().getName(),
-                player.getConnectedServer().getServerInfo().getName(), server.getServerInfo().getName());
-        server.disconnect();
+        if (Ambassador.getInstance().config.isEnableKickReset()) {
+          //Kick-reset
+          Ambassador.getInstance().reconnectSwitchPlayer(player);
+        } else {
+          Ambassador.getInstance().logger.error("Unable for {} to switch servers. Vanilla({}) -> Forge({}) switch " +
+                          "without client side mod or kick-reset enabled is not yet supported!",
+                  player.getGameProfile().getName(), player.getConnectedServer().getServerInfo().getName(),
+                  server.getServerInfo().getName());
+          server.disconnect();
+        }
         return;
       }
 
@@ -124,6 +134,9 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
           if (Ambassador.getInstance().config.isBypassRegistryCheck() ||
                   clientPhase.forgeHandshake.isCompatible(handshake)) {
             server.ensureConnected().write(clientPhase.forgeHandshake.getModListReplyPacket());
+          } else if (Ambassador.getInstance().config.isEnableKickReset()) {
+            //Kick-reset
+            Ambassador.getInstance().reconnectSwitchPlayer(player);
           } else {
             Ambassador.getInstance().logger.error("Unable to switch due to the registries of " +
                     server.getServer().getServerInfo().getName() + " being different from the registries of " +

@@ -19,6 +19,7 @@ import java.util.Map;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.network.ConnectionManager;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
@@ -28,6 +29,8 @@ import com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentPropertySeria
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.adde0109.ambassador.velocity.VelocityBackendChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityServerChannelInitializer;
 import org.adde0109.ambassador.velocity.VelocityEventHandler;
@@ -43,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_19;
 import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdentifier.mapSet;
 
-@Plugin(id = "ambassador", name = "Ambassador", version = "1.5.2-beta", authors = {"adde0109"})
+@Plugin(id = "ambassador", name = "Ambassador", version = "1.5.3-beta", authors = {"adde0109"})
 public class Ambassador {
 
   //Don't forget to update checkCompatibleVersion() when changing this value
@@ -151,6 +154,16 @@ public class Ambassador {
 
   public static MapWithExpiration<String, RegisteredServer> getTemporaryForced() {
     return TEMPORARY_FORCED;
+  }
+
+  public void reconnectSwitchPlayer(ConnectedPlayer player) {
+    TEMPORARY_FORCED.put(player.getUsername(), player.getConnectionInFlight().getServer(),
+            config.getServerSwitchCancellationTime(), TimeUnit.SECONDS);
+
+    MiniMessage mm = MiniMessage.miniMessage();
+    Component parsed = mm.deserialize(config.getKickReconnectMessageString());
+
+    player.disconnect(parsed);
   }
 
   private void initMetrics() {

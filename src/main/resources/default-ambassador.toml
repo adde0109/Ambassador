@@ -1,5 +1,5 @@
 # Do not change this
-config-version = "2.0"
+config-version = "2.1"
 
 # How much time the player has to reconnect before canceling the server switch. (In seconds)
 # Only for players with ServerRedirect mod installed. Set to -1 to disable ServerRedirect mod support.
@@ -17,5 +17,13 @@ bypass-registry-checks = false
 # Warning: This is a safety measure for when bypassRegistryCheck is true. Setting this to also true can cause crashes.
 bypass-mod-checks = false
 
-#Only for debug/troubleshooting
+# Only for debug/troubleshooting
 debug-mode = false
+
+# Make the player reconnect when server switching as a last resort if
+# the player can't reset or switch servers without resetting.
+enable-kick-reset = false
+
+# Message to display when player gets kicked due to server switching according to enable-kick-reset.
+# This input is deserialzied as MiniMessage and support formating according to the MiniMessage format.
+reconnect-message = "<red>Please reconnect.</red>"
