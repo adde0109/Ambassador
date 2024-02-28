@@ -43,8 +43,6 @@ public class AmbassadorConfig {
         this.kickReconnectMessageString = kickReconnectMessageString;
     }
 
-    ;
-
     public static AmbassadorConfig read(Path path) throws IOException {
         URL defaultConfigLocation = AmbassadorConfig.class.getClassLoader()
                 .getResource("default-ambassador.toml");
