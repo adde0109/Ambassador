@@ -187,7 +187,12 @@ public enum VelocityForgeBackendConnectionPhase implements BackendConnectionPhas
   public boolean handle(VelocityServerConnection server, ConnectedPlayer player, PluginMessagePacket message) {
     if (message.getChannel().equals("ambassador:commands")) {
       AvailableCommandsPacket packet = new AvailableCommandsPacket();
-      packet.decode(message.content(), ProtocolUtils.Direction.CLIENTBOUND,server.getConnection().getProtocolVersion());
+      try {
+        packet.decode(message.content(), ProtocolUtils.Direction.CLIENTBOUND, server.getConnection().getProtocolVersion());
+      } catch (Exception e) {
+        Ambassador.getInstance().logger.error("Failed to decode AvailableCommandsPacket", e);
+        return true;
+      }
       server.getConnection().getActiveSessionHandler().handle(packet);
       return true;
     }
