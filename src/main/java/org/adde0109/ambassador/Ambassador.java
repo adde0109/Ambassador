@@ -1,5 +1,7 @@
 package org.adde0109.ambassador;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
@@ -14,8 +16,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -50,7 +54,7 @@ import static com.velocitypowered.proxy.protocol.packet.brigadier.ArgumentIdenti
 public class Ambassador {
 
   //Don't forget to update checkCompatibleVersion() when changing this value
-  private static final String minVelocityVersion = "velocity-3.3.0-SNAPSHOT-330";
+  private static final String minVelocityVersion = "velocity-3.3.0-SNAPSHOT-490";
 
   public ProxyServer server;
   public final Logger logger;
@@ -79,11 +83,11 @@ public class Ambassador {
   boolean checkCompatibleVersion() {
     //Update this when changing minVelocityVersion
     try {
-      Class.forName("com.velocitypowered.proxy.protocol.packet.DisconnectPacket");
-    } catch (ClassNotFoundException e) {
-        throw new RuntimeException(e);
+      ConnectedPlayer.class.getMethod("getClientsideChannels");
+    } catch (NoSuchMethodException e) {
+      return false;
     }
-      return true;
+    return true;
   }
 
   @Subscribe(order = PostOrder.LAST)
