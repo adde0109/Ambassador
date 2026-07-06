@@ -52,13 +52,16 @@ public class VelocityEventHandler {
   @Subscribe(order = PostOrder.LAST)
   public void onPlayerChooseInitialServerEvent(PlayerChooseInitialServerEvent event, Continuation continuation) {
     ConnectedPlayer player = (ConnectedPlayer) event.getPlayer();
+    RegisteredServer chosenServer = Ambassador.getTemporaryForced().remove(player.getUsername());
+    if (chosenServer != null) {
+      event.setInitialServer(chosenServer);
+      continuation.resume();
+      return;
+    }
     if (!(player.getPhase() instanceof VelocityForgeClientConnectionPhase phase)) {
       continuation.resume();
       return;
     }
-    RegisteredServer chosenServer = Ambassador.getTemporaryForced().remove(player.getUsername());
-    if (chosenServer != null)
-      event.setInitialServer(chosenServer);
     //event.getPlayer().sendMessage(Component.text("choose server event"));
     continuation.resume();
   }

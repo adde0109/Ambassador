@@ -14,6 +14,7 @@ import com.velocitypowered.proxy.protocol.packet.LoginPluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
 import net.kyori.adventure.text.Component;
 import org.adde0109.ambassador.Ambassador;
 import org.adde0109.ambassador.forge.packet.IForgeLoginWrapperPacket;
@@ -61,16 +62,24 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
       //Don't handle anything from the server until the reset has completed.
       //player.getConnectionInFlight().getConnection().getChannel().config().setAutoRead(false);
 
-      if (connection.getState() == StateRegistry.PLAY || connection.getState() == StateRegistry.CONFIG) {
-        connection.write(new PluginMessagePacket("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
-        connection.setState(StateRegistry.LOGIN);
-      } else {
-        connection.write(new LoginPluginMessagePacket(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
-      }
-
       //Prepare to receive reset ACK
       connection.getChannel().pipeline().addBefore(Connections.MINECRAFT_DECODER,
               ForgeConstants.RESET_LISTENER, new FML2CRPMResetCompleteDecoder());
+
+      if (connection.getState() == StateRegistry.PLAY || connection.getState() == StateRegistry.CONFIG) {
+        ChannelFuture resetWrite = connection.write(new PluginMessagePacket("fml:handshake", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generatePluginResetPacket())));
+        if (resetWrite != null) {
+          resetWrite.addListener(future -> connection.getChannel().eventLoop().execute(() -> {
+            if (connection.getChannel().isActive()) {
+              connection.setState(StateRegistry.LOGIN);
+            }
+          }));
+        } else if (connection.getChannel().isActive()) {
+          connection.setState(StateRegistry.LOGIN);
+        }
+      } else {
+        connection.write(new LoginPluginMessagePacket(98,"fml:loginwrapper", Unpooled.wrappedBuffer(ForgeHandshakeUtils.generateResetPacket())));
+      }
 
       //Transition
       player.setPhase(WAITING_RESET);
@@ -135,7 +144,15 @@ public enum VelocityForgeClientConnectionPhase implements ClientConnectionPhase 
         ProtocolUtils.writeVarInt(buf, 0);
         buf.writeBytes((player.getVirtualHost().get().getHostName() + ":"
                 + player.getVirtualHost().get().getPort()).getBytes(StandardCharsets.UTF_8));
-        player.getConnection().write(new PluginMessagePacket("srvredirect:red", buf));
+        ChannelFuture redirectWrite = player.getConnection().write(new PluginMessagePacket("srvredirect:red", buf));
+        if (redirectWrite != null) {
+          redirectWrite.addListener(future -> player.getConnection().getChannel().eventLoop().schedule(
+                  () -> player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage()),
+                  250,
+                  TimeUnit.MILLISECONDS));
+        } else {
+          player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage());
+        }
       } else {
         player.disconnect(Ambassador.getInstance().config.getDisconnectResetMessage());
       }
